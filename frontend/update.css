@@ -1,0 +1,96 @@
+/* General Styles */
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: linear-gradient(120deg, #4c8bf5, #6a11cb);
+    color: #fff;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    overflow: hidden;
+}
+
+/* Wrapper */
+.update-password-wrapper {
+    width: 90%; /* Ensure it fits smaller screens */
+    max-width: 400px;
+    background: #ffffff;
+    border-radius: 10px;
+    box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
+    padding: 20px;
+    color: #333;
+    text-align: center;
+    box-sizing: border-box; /* Include padding in the width calculation */
+}
+
+/* Header */
+.update-password-container h1 {
+    margin-bottom: 15px;
+    font-size: 1.8rem;
+    color: #333;
+}
+
+/* Form */
+form {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    width: 100%; /* Restrict to container's width */
+    box-sizing: border-box; /* Include padding */
+}
+
+form label {
+    font-size: 0.9rem;
+    text-align: left;
+    margin-bottom: 5px;
+    color: #666;
+}
+
+form input {
+    padding: 10px 15px;
+    font-size: 1rem;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    outline: none;
+    width: 100%; /* Make sure it stays within the form */
+    box-sizing: border-box; /* Include padding in width */
+}
+
+form input:focus {
+    border-color: #4c8bf5;
+    box-shadow: 0 0 5px rgba(76, 139, 245, 0.5);
+}
+
+form button {
+    padding: 10px;
+    background-color: #4c8bf5;
+    color: #fff;
+    font-size: 1rem;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+form button:hover {
+    background-color: #357ae8;
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 600px) {
+    .update-password-wrapper {
+        padding: 15px;
+        max-width: 95%; /* Adjust for extra-small screens */
+    }
+
+    form input,
+    form button {
+        font-size: 0.9rem;
+        padding: 8px 10px;
+    }
+
+    .update-password-container h1 {
+        font-size: 1.5rem;
+    }
+}

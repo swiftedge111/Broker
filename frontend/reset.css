@@ -1,0 +1,117 @@
+/* styles/forgot-password.css */
+body {
+    font-family: 'Arial', sans-serif;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    background: linear-gradient(135deg, #6e8efb, #a777e3);
+    color: #333;
+}
+
+.forgot-password-wrapper {
+    width: 100%;
+    max-width: 450px;
+    padding: 20px;
+    margin: 0 auto;
+    box-sizing: border-box; /* Ensures padding doesn't affect the width */
+}
+
+.forgot-password-container {
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+    padding: 30px;
+    text-align: center;
+    box-sizing: border-box;
+}
+
+.forgot-password-header h1 {
+    margin-bottom: 10px;
+    font-size: 24px;
+    color: #444;
+}
+
+.forgot-password-header p {
+    margin-bottom: 20px;
+    color: #777;
+    font-size: 14px;
+}
+
+form {
+    margin-top: 20px;
+    width: 100%; /* Ensure the form takes full container width */
+}
+
+label {
+    display: block;
+    margin-bottom: 8px;
+    text-align: left;
+    font-size: 14px;
+    color: #444;
+}
+
+input[type="email"] {
+    width: 100%; /* Ensures the input doesn't overflow */
+    max-width: 100%; /* Prevents input from exceeding container width */
+    padding: 12px;
+    margin-bottom: 20px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 14px;
+    box-sizing: border-box; /* Include padding in width calculation */
+}
+
+input[type="email"]:focus {
+    border-color: #6e8efb;
+    outline: none;
+}
+
+button {
+    width: 100%; /* Ensure the button fits the container */
+    background: #6e8efb;
+    color: white;
+    padding: 12px;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background 0.3s;
+    box-sizing: border-box;
+}
+
+button:hover {
+    background: #5a75d4;
+}
+
+.forgot-password-footer {
+    margin-top: 20px;
+    font-size: 14px;
+    color: #777;
+}
+
+.forgot-password-footer a {
+    color: #6e8efb;
+    text-decoration: none;
+}
+
+.forgot-password-footer a:hover {
+    text-decoration: underline;
+}
+
+/* Responsive Design */
+@media (max-width: 600px) {
+    .forgot-password-container {
+        padding: 20px;
+    }
+
+    .forgot-password-header h1 {
+        font-size: 20px;
+    }
+
+    button {
+        font-size: 14px;
+    }
+}
