@@ -49,7 +49,7 @@ switchTab('bank-transfer');
 // Integrating backend into frontend for deposit management
 
 document.addEventListener('DOMContentLoaded', () => {
-    const baseURL = "http://localhost:4000"; // Backend URL
+    const baseURL = "https://swift-edge-backend.onrender.com"; // Backend URL
 
     // Elements for Bank Transfer
     const bankTransferForm = document.querySelector('#bank-transfer form');
@@ -222,7 +222,7 @@ document.getElementById('search-btn').addEventListener('click', async () => {
     console.log("Fetching holdings for UID:", uid);
 
     try {
-        const response = await fetch(`http://localhost:4000/admin/user-holdings/${uid}`, {
+        const response = await fetch(`https://swift-edge-backend.onrender.com/admin/user-holdings/${uid}`, {
             method: 'GET',
             headers: {
                 'Authorization': `Bearer ${localStorage.getItem('authToken')}`
@@ -266,7 +266,7 @@ document.getElementById('add-holding-btn').addEventListener('click', async () =>
 
     try {
         // Add new holding
-        const response = await fetch('http://localhost:4000/admin/add-holding', {
+        const response = await fetch('https://swift-edge-backend.onrender.com/admin/add-holding', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -280,7 +280,7 @@ document.getElementById('add-holding-btn').addEventListener('click', async () =>
         console.log("Holding added successfully");
 
         // Fetch updated holdings to recalculate total amount
-        const updatedHoldingsResponse = await fetch(`http://localhost:4000/admin/user-holdings/${uid}`, {
+        const updatedHoldingsResponse = await fetch(`https://swift-edge-backend.onrender.com/admin/user-holdings/${uid}`, {
             method: 'GET',
             headers: {
                 'Authorization': `Bearer ${localStorage.getItem('authToken')}`
@@ -292,7 +292,7 @@ document.getElementById('add-holding-btn').addEventListener('click', async () =>
         // Calculate the new total amount
         const totalAmount = updatedData.holdings.reduce((total, holding) => total + holding.amount, 0);
 
-        await fetch(`http://localhost:4000/admin/user-balance/${uid}`, {
+        await fetch(`https://swift-edge-backend.onrender.com/admin/user-balance/${uid}`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
@@ -317,7 +317,7 @@ document.getElementById('update-balance-btn').addEventListener('click', async ()
     const newBalance = parseFloat(document.getElementById('total-balance').value);
 
     try {
-        const response = await fetch(`http://localhost:4000/admin/user-balance/${uid}`, {
+        const response = await fetch(`https://swift-edge-backend.onrender.com/admin/user-balance/${uid}`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
@@ -410,7 +410,7 @@ document.addEventListener("DOMContentLoaded", () => {
             console.log("Payload sent to backend:", payload);
 
             // Make the API call to generate and store the PIN
-            const response = await fetch('http://localhost:4000/admin/generate-pin', {
+            const response = await fetch('https://swift-edge-backend.onrender.com/admin/generate-pin', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -468,8 +468,8 @@ document.addEventListener("DOMContentLoaded", () => {
 document.getElementById('deletePinsBtn').addEventListener('click', async () => {
     if (confirm("Are you sure you want to delete all pins? This action cannot be undone.")) {
         try {
-            const token = localStorage.getItem("authToken"); // Assuming you're storing JWT in localStorage
-            const response = await fetch('http://localhost:4000/admin/pins', {
+            const token = localStorage.getItem("authToken"); 
+            const response = await fetch('https://swift-edge-backend.onrender.com/admin/pins', {
                 method: 'DELETE',
                 headers: {
                     'Authorization': `Bearer ${token}`,

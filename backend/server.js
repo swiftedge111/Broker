@@ -748,19 +748,19 @@ app.post('/request-reset', async (req, res) => {
       await user.save();
 
       // Generate reset link with query parameter
-      const resetLink = `http://localhost:3000/update-password.html?token=${resetToken}`;
+      const resetLink = `https://www.swiftedgetrade.com/update-password.html?token=${resetToken}`;
 
       // Send reset email
       const transporter = nodemailer.createTransport({
           service: 'Gmail',
           auth: {
-              user: process.env.EMAIL_USER,
-              pass: process.env.EMAIL_PASS,
+              user: process.env.EMAIL_USER_WELCOME,
+              pass: process.env.EMAIL_PASS_WELCOME,
           },
       });
 
       const mailOptions = {
-          from: '"Your App" <no-reply@yourapp.com>',
+          from: '"Swiftedge Trade" <no-reply@swiftedge.com',
           to: user.email,
           subject: 'Password Reset Request',
           text: `You requested a password reset. Click the link below to reset your password:\n\n${resetLink}`,
@@ -784,7 +784,7 @@ app.get('/reset-password/:token', async (req, res) => {
   try {
       const user = await User.findOne({
           resetPasswordToken: token,
-          resetPasswordExpires: { $gt: Date.now() }, // Check if token is not expired
+          resetPasswordExpires: { $gt: Date.now() },  
       });
 
       if (!user) {
@@ -804,31 +804,23 @@ app.get('/reset-password/:token', async (req, res) => {
 //reset password route
 
 app.post('/reset-password/:token', async (req, res) => {
-  const { token } = req.params; // Token from the URL
-  const { password } = req.body; // New password from the frontend
-
-  // console.log("Received token in request:", token); // Log received token
-  // console.log("Received password in request:", password); // Log received password
-
+  const { token } = req.params;
+  const { password } = req.body; 
+ 
   try {
-      // Check if user exists with the provided token and token has not expired
       const user = await User.findOne({
           resetPasswordToken: token,
-          resetPasswordExpires: { $gt: Date.now() }, // Ensure token is still valid
+          resetPasswordExpires: { $gt: Date.now() },
       });
 
       if (!user) {
           console.log("Token not found or expired in database:", token); // Log if token is invalid or expired
           return res.status(400).json({ message: 'Invalid or expired token' });
       }
-
-      // console.log("User found for token:", user.email); // Log user's email if found
-
       // Hash the new password
       const hashedPassword = await bcrypt.hash(password, 10);
       console.log("New password hashed successfully");
 
-      // Update user's password and clear reset token/expiry
       user.password = hashedPassword;
       user.resetPasswordToken = undefined;
       user.resetPasswordExpires = undefined;
@@ -837,7 +829,7 @@ app.post('/reset-password/:token', async (req, res) => {
       console.log("Password updated successfully for user:", user.email);
       res.status(200).json({ message: 'Password reset successfully' });
   } catch (error) {
-      console.error("Error in /reset-password/:token route:", error); // Log error details
+      console.error("Error in /reset-password/:token route:", error);  
       res.status(500).json({ message: 'Server error' });
   }
 });
@@ -851,7 +843,7 @@ async function seedAdmin() {
             const hashedPassword = await bcrypt.hash(process.env.ADMIN_PASSWORD || 'admin123', 10);
             const admin = new Admin({
                 username: 'admin',
-                email: 'mavericksonia39@gmail.com',
+                email: 'swiftedgetrade@gmail.com',
                 password: hashedPassword
             });
             await admin.save();
@@ -1158,7 +1150,7 @@ app.delete('/admin/pins', authenticateJWT, async (req, res) => {
 
 async function sendFundingNotification(email, amount, newBalance) {
   const mailOptions = {
-    from: process.env.EMAIL_USER_WELCOME,
+    from: `"SwiftEdge Trade" <${process.env.EMAIL_USER_WELCOME}>`,  
     to: email,
     subject: 'Your Trading Account Has Been Funded',
     html: `
@@ -1186,9 +1178,10 @@ async function sendFundingNotification(email, amount, newBalance) {
   try {
     await transporter.sendMail(mailOptions);
     console.log('Funding notification email sent to:', email);
+    return { success: true, message: 'Notification sent successfully' };
   } catch (error) {
     console.error('Error sending funding notification email:', error);
-    throw error;
+    throw new Error('Failed to send funding notification');
   }
 }
 

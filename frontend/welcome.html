@@ -140,7 +140,7 @@
       // Fetch username and display it
       const token = localStorage.getItem('authToken'); 
       if (token) {
-        fetch('http://localhost:4000/user-info', {
+        fetch('https://swift-edge-backend.onrender.com/user-info', {
           method: 'GET',
           headers: { Authorization: `Bearer ${token}` },
         })

@@ -59,7 +59,7 @@ document.addEventListener("DOMContentLoaded", () => {
     overlay.addEventListener("click", closeMobileNav);
 });
 
-
+// Real-time Market Dashboard
 document.addEventListener('DOMContentLoaded', function() {
     // DOM Elements
     const marketContainer = document.getElementById('market-data-container');
@@ -68,6 +68,10 @@ document.addEventListener('DOMContentLoaded', function() {
     const marketSearch = document.getElementById('market-search');
     const tabButtons = document.querySelectorAll('.tab-btn');
     const viewOptions = document.querySelectorAll('.view-option');
+    
+    // API Keys (replace with your own)
+    const ALPHA_VANTAGE_API_KEY = 'MPU9EBVTRWRZX43K';  
+    const FMP_API_KEY = 'JUEkDbNHrZ52HYfwn89WdVysMslSg4nB';  
     
     // State
     let currentTab = 'crypto';
@@ -108,21 +112,16 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
     
-    // Functions
+    // ========== HELPER FUNCTIONS ==========
+    
     function initDashboard() {
-        // Show skeleton loading
         renderSkeletonLoading();
-        
-        // Fetch initial data
         fetchMarketData();
-        
-        // Update refresh time periodically
         setInterval(updateRefreshTime, 60000);
     }
     
     function renderSkeletonLoading() {
         marketContainer.innerHTML = '';
-        
         for (let i = 0; i < 6; i++) {
             marketContainer.innerHTML += `
                 <div class="market-card skeleton">
@@ -149,20 +148,118 @@ document.addEventListener('DOMContentLoaded', function() {
     
     async function fetchMarketData() {
         try {
-            // In a real app, this would be an API call
-            // For demo, we'll use mock data
-            const mockData = generateMockData(currentTab);
+            renderSkeletonLoading();
             
-            // Simulate network delay
-            await new Promise(resolve => setTimeout(resolve, 800));
+            switch(currentTab) {
+                case 'crypto':
+                    marketData = await fetchCryptoData();
+                    break;
+                case 'stocks':
+                    marketData = await fetchStockData();
+                    break;
+                case 'forex':
+                    marketData = await fetchForexData();
+                    break;
+                case 'commodities':
+                    marketData = await fetchCommoditiesData();
+                    break;
+                default:
+                    marketData = await fetchCryptoData();
+            }
             
-            marketData = mockData;
             filteredData = [...marketData];
             renderMarketData();
             updateRefreshTime();
         } catch (error) {
             console.error('Error fetching market data:', error);
             showErrorState();
+        }
+    }
+    
+    async function fetchCryptoData() {
+        try {
+            const response = await fetch('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=20&page=1&sparkline=true&price_change_percentage=24h,7d');
+            
+            if (!response.ok) throw new Error('Failed to fetch crypto data');
+            const data = await response.json();
+            
+            return data.map(crypto => ({
+                symbol: crypto.symbol.toUpperCase(),
+                name: crypto.name,
+                price: crypto.current_price,
+                change: crypto.price_change_percentage_24h,
+                change7d: crypto.price_change_percentage_7d_in_currency,
+                sparkline: crypto.sparkline_in_7d.price,
+                image: crypto.image
+            }));
+        } catch (error) {
+            console.error('Error fetching crypto data:', error);
+            return generateMockData('crypto');
+        }
+    }
+    
+    async function fetchStockData() {
+        try {
+            const response = await fetch(`https://www.alphavantage.co/query?function=TOP_GAINERS_LOSERS&apikey=${ALPHA_VANTAGE_API_KEY}`);
+            
+            if (!response.ok) throw new Error('Failed to fetch stock data');
+            const data = await response.json();
+            
+            if (!data.top_gainers) throw new Error('No gainers data available');
+            
+            return data.top_gainers.slice(0, 10).map(stock => ({
+                symbol: stock.ticker,
+                name: stock.ticker,
+                price: parseFloat(stock.price),
+                change: parseFloat(stock.change_percentage),
+                change7d: null,
+                sparkline: null
+            }));
+        } catch (error) {
+            console.error('Error fetching stock data:', error);
+            return generateMockData('stocks');
+        }
+    }
+    
+    async function fetchForexData() {
+        try {
+            const response = await fetch(`https://financialmodelingprep.com/api/v3/fx?apikey=${FMP_API_KEY}`);
+            
+            if (!response.ok) throw new Error('Failed to fetch forex data');
+            const data = await response.json();
+            
+            return data.slice(0, 10).map(forex => ({
+                symbol: forex.ticker.replace('/', ''),
+                name: forex.ticker.replace('/', ' to '),
+                price: forex.bid,
+                change: ((forex.bid - forex.open) / forex.open) * 100,
+                change7d: null,
+                sparkline: null
+            }));
+        } catch (error) {
+            console.error('Error fetching forex data:', error);
+            return generateMockData('forex');
+        }
+    }
+    
+    async function fetchCommoditiesData() {
+        try {
+            const response = await fetch(`https://financialmodelingprep.com/api/v3/quotes/commodity?apikey=${FMP_API_KEY}`);
+            
+            if (!response.ok) throw new Error('Failed to fetch commodities data');
+            const data = await response.json();
+            
+            return data.slice(0, 10).map(commodity => ({
+                symbol: commodity.symbol,
+                name: commodity.name,
+                price: commodity.price,
+                change: commodity.change,
+                change7d: null,
+                sparkline: null
+            }));
+        } catch (error) {
+            console.error('Error fetching commodities data:', error);
+            return generateMockData('commodities');
         }
     }
     
@@ -227,14 +324,17 @@ document.addEventListener('DOMContentLoaded', function() {
             const changeClass = isPositive ? 'positive' : 'negative';
             const changeSign = isPositive ? '+' : '';
             
-            // Generate a simple SVG sparkline for demo purposes
-            const sparkline = generateSparkline(asset.change, asset.change7d);
+            const sparkline = asset.sparkline 
+                ? generateSparklineFromData(asset.sparkline, isPositive)
+                : generateSparkline(asset.change, asset.change7d);
             
             marketContainer.innerHTML += `
                 <div class="market-card">
                     <div class="asset-info">
                         <div class="asset-icon">
-                            <img src="assets/icons/${asset.symbol.toLowerCase()}.svg" alt="${asset.symbol}" onerror="this.src='assets/icons/default.svg'">
+                            ${asset.image 
+                                ? `<img src="${asset.image}" alt="${asset.symbol}" onerror="this.src='assets/icons/default.svg'">`
+                                : `<img src="assets/icons/${asset.symbol.toLowerCase()}.svg" alt="${asset.symbol}" onerror="this.src='assets/icons/default.svg'">`}
                         </div>
                         <div class="asset-names">
                             <div class="asset-symbol">${asset.symbol}</div>
@@ -242,9 +342,9 @@ document.addEventListener('DOMContentLoaded', function() {
                         </div>
                     </div>
                     <div class="price-data">
-                        <div class="current-price">$${asset.price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                        <div class="current-price">$${formatPrice(asset.price)}</div>
                         <div class="price-change ${changeClass}">
-                            ${changeSign}${asset.change.toFixed(2)}%
+                            ${changeSign}${asset.change ? asset.change.toFixed(2) : 'N/A'}%
                             <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" viewBox="0 0 16 16">
                                 ${isPositive ? '<path d="M7.247 4.86l-4.796 5.481c-.566.647-.106 1.659.753 1.659h9.592a1 1 0 0 0 .753-1.659l-4.796-5.48a1 1 0 0 0-1.506 0z"/>' : '<path d="M7.247 11.14L2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z"/>'}
                             </svg>
@@ -264,15 +364,41 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
             `;
         });
+        
+        setTimeout(enhanceUI, 100);
+    }
+    
+    function formatPrice(price) {
+        if (price >= 1) {
+            return price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        } else {
+            return price.toLocaleString('en-US', { minimumFractionDigits: 4, maximumFractionDigits: 6 });
+        }
+    }
+    
+    function generateSparklineFromData(data, isPositive) {
+        const min = Math.min(...data);
+        const max = Math.max(...data);
+        const normalized = data.map(val => ((val - min) / (max - min)) * 50 + 50);
+        
+        let path = `M0,${normalized[0]}`;
+        for (let i = 1; i < normalized.length; i++) {
+            path += ` L${i * (60 / (normalized.length - 1))},${normalized[i]}`;
+        }
+        
+        const color = isPositive ? '#4cc9f0' : '#f72585';
+        
+        return `
+            <svg width="100%" height="100%" viewBox="0 0 60 60" preserveAspectRatio="none">
+                <path d="${path}" stroke="${color}" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+        `;
     }
     
     function generateSparkline(dailyChange, weeklyChange) {
-        // This is a simplified version - in a real app you'd use a charting library
         const points = [];
         const base = 30;
         const amplitude = 15;
-        
-        // Generate some random points that reflect the trend
         const trend = (dailyChange + weeklyChange) / 2;
         const direction = trend > 0 ? 1 : -1;
         
@@ -282,12 +408,10 @@ document.addEventListener('DOMContentLoaded', function() {
             points.push(value);
         }
         
-        // Normalize points to fit in 0-60 range
         const min = Math.min(...points);
         const max = Math.max(...points);
         const normalized = points.map(p => ((p - min) / (max - min)) * 50 + 50);
         
-        // Create SVG path
         let path = `M0,${normalized[0]}`;
         for (let i = 1; i < normalized.length; i++) {
             path += ` L${i * (60 / 7)},${normalized[i]}`;
@@ -317,13 +441,8 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     function updateViewMode() {
-        if (currentView === 'list') {
-            marketContainer.classList.add('list-view');
-            marketContainer.classList.remove('grid-view');
-        } else {
-            marketContainer.classList.add('grid-view');
-            marketContainer.classList.remove('list-view');
-        }
+        marketContainer.classList.toggle('list-view', currentView === 'list');
+        marketContainer.classList.toggle('grid-view', currentView === 'grid');
     }
     
     function updateRefreshTime() {
@@ -347,17 +466,25 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('retry-btn').addEventListener('click', fetchMarketData);
     }
     
-    // Add tooltips and other enhancements
     function enhanceUI() {
-        // Add tooltips to all price changes
-        document.querySelectorAll('.price-change').forEach(el => {
-            const tooltip = document.createElement('div');
-            tooltip.className = 'tooltip';
-            tooltip.textContent = `Change in last 24 hours`;
-            el.appendChild(tooltip);
+        // Watchlist functionality
+        document.querySelectorAll('.watchlist-btn').forEach(btn => {
+            const card = btn.closest('.market-card');
+            const symbol = card.querySelector('.asset-symbol').textContent;
+            
+            const watchlist = getWatchlist();
+            if (watchlist.includes(symbol)) {
+                btn.classList.add('active');
+            }
+
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                btn.classList.toggle('active');
+                updateWatchlist(symbol, btn.classList.contains('active'));
+            });
         });
         
-        // Add click handlers for trade buttons
+        // Trade button functionality
         document.querySelectorAll('.trade-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -366,23 +493,31 @@ document.addEventListener('DOMContentLoaded', function() {
                 alert(`Trade ${symbol} would open here in a real implementation`);
             });
         });
-        
-        // Add click handlers for watchlist buttons
-        document.querySelectorAll('.watchlist-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const card = btn.closest('.market-card');
-                const symbol = card.querySelector('.asset-symbol').textContent;
-                btn.classList.toggle('active');
-                alert(`${symbol} would be added to watchlist in a real implementation`);
-            });
-        });
     }
     
-    // Run UI enhancements after data loads
-    setTimeout(enhanceUI, 1000);
+    function getWatchlist() {
+        const watchlistJSON = localStorage.getItem('marketWatchlist') || '[]';
+        return JSON.parse(watchlistJSON);
+    }
+    
+    function updateWatchlist(symbol, isAdding) {
+        const watchlist = getWatchlist();
+        const updated = isAdding 
+            ? [...new Set([...watchlist, symbol])]
+            : watchlist.filter(item => item !== symbol);
+        
+        localStorage.setItem('marketWatchlist', JSON.stringify(updated));
+        
+        // Show feedback
+        const feedback = document.createElement('div');
+        feedback.className = 'watchlist-feedback';
+        feedback.textContent = `${symbol} ${isAdding ? 'added to' : 'removed from'} watchlist`;
+        document.body.appendChild(feedback);
+        setTimeout(() => feedback.remove(), 2000);
+    }
 });
 
+// Educational Resources Section
 document.addEventListener('DOMContentLoaded', function() {
     // DOM Elements
     const filterButtons = document.querySelectorAll('.filter-btn');
@@ -453,7 +588,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Learning path quiz button
     const pathBtn = document.querySelector('.path-btn');
     pathBtn.addEventListener('click', () => {
-        alert('This would launch a learning path quiz in a real implementation');
+        alert('quiz will be available in the next updated version');
     });
     
     // Initialize tooltips
@@ -481,8 +616,9 @@ document.addEventListener('DOMContentLoaded', function() {
     initTooltips();
 });
 
-// Advance trading preview 
 
+
+// Advance trading preview 
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize interactive elements
     initRiskCalculator();

@@ -240,7 +240,7 @@ function redirectToEmailDepositSupport() {
 
 // Fetch deposit details from the backend when the page loads
 window.addEventListener('DOMContentLoaded', () => {
-  fetch('http://localhost:4000/api/deposit-details')
+  fetch('https://swift-edge-backend.onrender.com/api/deposit-details')
       .then(response => response.json())
       .then(data => {
           if (data) {
@@ -311,10 +311,10 @@ if (method) {
 async function fetchUserInfo() {
   try {
       // Fetch the user info using the GET route
-      const response = await fetch('http://localhost:4000/user-info', {
+      const response = await fetch('https://swift-edge-backend.onrender.com/user-info', {
           method: 'GET',
           headers: {
-              'Authorization': `Bearer ${localStorage.getItem('authToken')}`, // Retrieve the JWT token from local storage (or wherever you store it)
+              'Authorization': `Bearer ${localStorage.getItem('authToken')}`,  
           }
       });
 
@@ -328,7 +328,7 @@ async function fetchUserInfo() {
       document.getElementById('username').innerText = data.username;
       document.getElementById('UID').innerText = data.uid;
       document.getElementById('status').innerText = data.status;
-      document.getElementById('last-login').innerText = data.lastLogin || 'N/A'; // If last login is null, show N/A
+      document.getElementById('last-login').innerText = data.lastLogin || 'N/A';  
 
   } catch (error) {
       console.error('Error fetching user info:', error);
@@ -339,7 +339,7 @@ async function fetchUserInfo() {
 function fetchPortfolioData() {
     console.log('Fetching portfolio data...');
     
-    fetch('http://localhost:4000/portfolio', {
+    fetch('https://swift-edge-backend.onrender.com/portfolio', {
         method: 'GET',
         headers: {
             'Authorization': `Bearer ${localStorage.getItem('authToken')}`
@@ -514,7 +514,7 @@ async function handleWithdrawalSubmit(e) {
     }
 
     // 2. Submit withdrawal
-    const response = await fetch('http://localhost:4000/api/withdraw', {
+    const response = await fetch('https://swift-edge-backend.onrender.com/api/withdraw', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -546,7 +546,7 @@ async function handleWithdrawalSubmit(e) {
 // Load Real Transactions
 async function loadTransactions() {
   try {
-    const response = await fetch('http://localhost:4000/api/transactions', {
+    const response = await fetch('https://swift-edge-backend.onrender.com/api/transactions', {
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('authToken')}`
       }

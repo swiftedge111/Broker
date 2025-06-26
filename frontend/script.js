@@ -102,7 +102,7 @@ class AuthForms {
                 password
             };
             Object.keys(loginData).forEach(key => loginData[key] === undefined && delete loginData[key]);
-            const response = await fetch("http://localhost:4000/login", {
+            const response = await fetch("https://swift-edge-backend.onrender.com/login", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -183,7 +183,7 @@ class AuthForms {
             btn.disabled = true;
             const { confirmPassword, terms, ...submitData } = formData;
             
-            const response = await fetch("http://localhost:4000/signup", {
+            const response = await fetch("https://swift-edge-backend.onrender.com/signup", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",

@@ -25,7 +25,7 @@ document.getElementById('update-password-form').addEventListener('submit', async
     }
 
     try {
-        const response = await fetch(`https://swiftedge-trade.onrender.com/reset-password/${token}`, {
+        const response = await fetch(`https://swift-edge-backend.onrender.com/reset-password/${token}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ password: newPassword }),
