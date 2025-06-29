@@ -49,8 +49,6 @@ switchTab('bank-transfer');
 // Integrating backend into frontend for deposit management
 
 document.addEventListener('DOMContentLoaded', () => {
-    const baseURL = "https://swift-edge-backend.onrender.com"; // Backend URL
-
     // Elements for Bank Transfer
     const bankTransferForm = document.querySelector('#bank-transfer form');
     const saveBankTransferBtn = document.querySelector('#save-bank-transfer');
@@ -68,7 +66,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Fetch and populate Bank Transfer data
     async function fetchBankTransferData() {
         try {
-            const response = await fetch(`${baseURL}/admin/deposit/bank-transfer`, {
+            const response = await fetch(`${API_BASE_URL}/admin/deposit/bank-transfer`, {
                 headers: { Authorization: `Bearer ${localStorage.getItem('authToken')}` },
             });
             if (response.ok) {
@@ -95,7 +93,7 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         try {
-            const response = await fetch(`${baseURL}/admin/deposit/bank-transfer`, {
+            const response = await fetch(`${API_BASE_URL}/admin/deposit/bank-transfer`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -113,7 +111,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Fetch and populate Cryptocurrency data
     async function fetchCryptoData(cryptocurrency) {
         try {
-            const response = await fetch(`${baseURL}/admin/deposit/crypto?cryptocurrency=${cryptocurrency}`, {
+            const response = await fetch(`${API_BASE_URL}/admin/deposit/crypto?cryptocurrency=${cryptocurrency}`, {
                 headers: { Authorization: `Bearer ${localStorage.getItem('authToken')}` },
             });
             if (response.ok) {
@@ -139,7 +137,7 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         try {
-            const response = await fetch(`${baseURL}/admin/deposit/crypto`, {
+            const response = await fetch(`${API_BASE_URL}/admin/deposit/crypto`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -157,7 +155,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Fetch and populate Digital Wallets data
     async function fetchDigitalWalletsData(walletType) {
         try {
-            const response = await fetch(`${baseURL}/admin/deposit/digital-wallets?walletType=${walletType}`, {
+            const response = await fetch(`${API_BASE_URL}/admin/deposit/digital-wallets?walletType=${walletType}`, {
                 headers: { Authorization: `Bearer ${localStorage.getItem('authToken')}` },
             });
             if (response.ok) {
@@ -222,7 +220,7 @@ document.getElementById('search-btn').addEventListener('click', async () => {
     console.log("Fetching holdings for UID:", uid);
 
     try {
-        const response = await fetch(`https://swift-edge-backend.onrender.com/admin/user-holdings/${uid}`, {
+        const response = await fetch(`${API_BASE_URL}/admin/user-holdings/${uid}`, {
             method: 'GET',
             headers: {
                 'Authorization': `Bearer ${localStorage.getItem('authToken')}`
@@ -266,7 +264,7 @@ document.getElementById('add-holding-btn').addEventListener('click', async () =>
 
     try {
         // Add new holding
-        const response = await fetch('https://swift-edge-backend.onrender.com/admin/add-holding', {
+        const response = await fetch(`${API_BASE_URL}/admin/add-holding`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -280,7 +278,7 @@ document.getElementById('add-holding-btn').addEventListener('click', async () =>
         console.log("Holding added successfully");
 
         // Fetch updated holdings to recalculate total amount
-        const updatedHoldingsResponse = await fetch(`https://swift-edge-backend.onrender.com/admin/user-holdings/${uid}`, {
+        const updatedHoldingsResponse = await fetch(`${API_BASE_URL}admin/user-holdings/${uid}`, {
             method: 'GET',
             headers: {
                 'Authorization': `Bearer ${localStorage.getItem('authToken')}`
@@ -292,7 +290,7 @@ document.getElementById('add-holding-btn').addEventListener('click', async () =>
         // Calculate the new total amount
         const totalAmount = updatedData.holdings.reduce((total, holding) => total + holding.amount, 0);
 
-        await fetch(`https://swift-edge-backend.onrender.com/admin/user-balance/${uid}`, {
+        await fetch(`${API_BASE_URL}/admin/user-balance/${uid}`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
@@ -317,7 +315,7 @@ document.getElementById('update-balance-btn').addEventListener('click', async ()
     const newBalance = parseFloat(document.getElementById('total-balance').value);
 
     try {
-        const response = await fetch(`https://swift-edge-backend.onrender.com/admin/user-balance/${uid}`, {
+        const response = await fetch(`${API_BASE_URL}/admin/user-balance/${uid}`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
@@ -410,7 +408,7 @@ document.addEventListener("DOMContentLoaded", () => {
             console.log("Payload sent to backend:", payload);
 
             // Make the API call to generate and store the PIN
-            const response = await fetch('https://swift-edge-backend.onrender.com/admin/generate-pin', {
+            const response = await fetch(`${API_BASE_URL}/admin/generate-pin`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -469,7 +467,7 @@ document.getElementById('deletePinsBtn').addEventListener('click', async () => {
     if (confirm("Are you sure you want to delete all pins? This action cannot be undone.")) {
         try {
             const token = localStorage.getItem("authToken"); 
-            const response = await fetch('https://swift-edge-backend.onrender.com/admin/pins', {
+            const response = await fetch(`${API_BASE_URL}/admin/pins`, {
                 method: 'DELETE',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -490,7 +488,7 @@ document.getElementById('deletePinsBtn').addEventListener('click', async () => {
 // Admin - Load Pending Withdrawals
 async function loadPendingWithdrawals() {
   try {
-    const response = await fetch('http://localhost:4000/api/admin/transactions?status=pending', {
+    const response = await fetch(`${API_BASE_URL}/api/admin/transactions?status=pending`, {
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('authToken')}`
       }
@@ -540,7 +538,7 @@ async function handleAdminAction(txId, action) {
   if (notes === null) return; // User cancelled
 
   try {
-    const response = await fetch(`http://localhost:4000/api/admin/transactions/${txId}`, {
+    const response = await fetch(`${API_BASE_URL}/api/admin/transactions/${txId}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',

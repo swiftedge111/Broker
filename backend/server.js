@@ -912,8 +912,8 @@ app.post('/admin/forgot-password', async (req, res) => {
         admin.resetPasswordExpires = Date.now() + 3600000; 
         await admin.save();
 
-        // Send email using previous nodemailder setup
-        const resetUrl = `${process.env.BASE_URL}/admin/reset-password?token=${resetToken}`;
+        // Send email
+        const resetUrl = `${process.env.BASE_URL}/reset-password.html?token=${resetToken}`;
         
         const mailOptions = {
             to: admin.email,
@@ -924,6 +924,7 @@ app.post('/admin/forgot-password', async (req, res) => {
                 <p>Click this link to reset your password:</p>
                 <a href="${resetUrl}">${resetUrl}</a>
                 <p>This link will expire in 1 hour.</p>
+                <p>If you didn't request this, please ignore this email.</p>
             `
         };
 

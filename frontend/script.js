@@ -102,7 +102,7 @@ class AuthForms {
                 password
             };
             Object.keys(loginData).forEach(key => loginData[key] === undefined && delete loginData[key]);
-            const response = await fetch("https://swift-edge-backend.onrender.com/login", {
+            const response = await fetch(`${API_BASE_URL}/login`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -183,7 +183,7 @@ class AuthForms {
             btn.disabled = true;
             const { confirmPassword, terms, ...submitData } = formData;
             
-            const response = await fetch("https://swift-edge-backend.onrender.com/signup", {
+            const response = await fetch(`${API_BASE_URL}/signup`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",

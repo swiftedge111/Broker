@@ -111,6 +111,7 @@
   </div>
 
   <!-- JavaScript -->
+   <script src="apiConfig.js"></script>
   <script>
     function proceed() {
       window.location.href = "App.html"; // Redirect to main application page
@@ -140,7 +141,7 @@
       // Fetch username and display it
       const token = localStorage.getItem('authToken'); 
       if (token) {
-        fetch('https://swift-edge-backend.onrender.com/user-info', {
+        fetch(`${API_BASE_URL}/user-info`, {
           method: 'GET',
           headers: { Authorization: `Bearer ${token}` },
         })

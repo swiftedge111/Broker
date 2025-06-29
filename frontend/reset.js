@@ -12,7 +12,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         try {
-            const response = await fetch('https://swift-edge-backend.onrender.com/request-reset', {
+            const response = await fetch(`${API_BASE_URL}/request-reset`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

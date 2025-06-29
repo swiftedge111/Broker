@@ -240,11 +240,10 @@ function redirectToEmailDepositSupport() {
 
 // Fetch deposit details from the backend when the page loads
 window.addEventListener('DOMContentLoaded', () => {
-  fetch('https://swift-edge-backend.onrender.com/api/deposit-details')
+  fetch(`${API_BASE_URL}/api/deposit-details`)
       .then(response => response.json())
       .then(data => {
           if (data) {
-              // Save the data to a global variable or state for later use
               window.depositData = data;
           }
       })
@@ -311,7 +310,7 @@ if (method) {
 async function fetchUserInfo() {
   try {
       // Fetch the user info using the GET route
-      const response = await fetch('https://swift-edge-backend.onrender.com/user-info', {
+      const response = await fetch(`${API_BASE_URL}/user-info`, {
           method: 'GET',
           headers: {
               'Authorization': `Bearer ${localStorage.getItem('authToken')}`,  
@@ -339,7 +338,7 @@ async function fetchUserInfo() {
 function fetchPortfolioData() {
     console.log('Fetching portfolio data...');
     
-    fetch('https://swift-edge-backend.onrender.com/portfolio', {
+    fetch(`${API_BASE_URL}/portfolio`, {
         method: 'GET',
         headers: {
             'Authorization': `Bearer ${localStorage.getItem('authToken')}`
@@ -514,7 +513,7 @@ async function handleWithdrawalSubmit(e) {
     }
 
     // 2. Submit withdrawal
-    const response = await fetch('https://swift-edge-backend.onrender.com/api/withdraw', {
+    const response = await fetch(`${API_BASE_URL}/api/withdraw`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -546,7 +545,7 @@ async function handleWithdrawalSubmit(e) {
 // Load Real Transactions
 async function loadTransactions() {
   try {
-    const response = await fetch('https://swift-edge-backend.onrender.com/api/transactions', {
+    const response = await fetch(`${API_BASE_URL}/api/transactions`, {
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('authToken')}`
       }
@@ -558,6 +557,7 @@ async function loadTransactions() {
     console.error('Failed to load transactions:', error);
   }
 }
+
 
 // Render Transactions
 function renderTransactions(transactions) {
