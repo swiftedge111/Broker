@@ -122,14 +122,26 @@
         <!-- User Info & Balance -->
         <div class="user-info-section">
             <h2>User Info</h2>
-            <p><strong>Full Name:</strong> <span id="user-name"></span></p>
-            <p><strong>Username:</strong> <span id="user-username"></span></p>
-            <p><strong>Email:</strong> <span id="user-email"></span></p>
-
-            <label for="total-balance">Total Balance:</label>
-            <input type="number" id="total-balance" placeholder="Update balance" step="0.00">
-
-            <button class="btn" id="update-balance-btn">Update Balance</button>
+            <div class="user-detail">
+                <span class="detail-label">Full Name:</span>
+                <span id="user-name" class="detail-value">Not loaded</span>
+            </div>
+            <div class="user-detail">
+                <span class="detail-label">Username:</span>
+                <span id="user-username" class="detail-value">Not loaded</span>
+            </div>
+            <div class="user-detail">
+                <span class="detail-label">Email:</span>
+                <span id="user-email" class="detail-value">Not loaded</span>
+            </div>
+            
+            <div class="balance-controls">
+                <label for="total-balance">Total Balance:</label>
+                <div class="balance-input-group">
+                    <span class="currency-symbol">$</span>
+                    <input type="number" id="total-balance" readonly>
+                </div>
+            </div>
         </div>
 
         <!-- Holdings Section -->

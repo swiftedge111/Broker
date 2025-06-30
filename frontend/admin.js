@@ -214,53 +214,61 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 
-// Fetch Holdings and Display
+// Fetch and Display User Data
 document.getElementById('search-btn').addEventListener('click', async () => {
-    const uid = document.getElementById('uid-search').value;
-    console.log("Fetching holdings for UID:", uid);
+    const uid = document.getElementById('uid-search').value.trim();
+    if (!uid) return;
 
     try {
         const response = await fetch(`${API_BASE_URL}/admin/user-holdings/${uid}`, {
-            method: 'GET',
-            headers: {
-                'Authorization': `Bearer ${localStorage.getItem('authToken')}`
-            }
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken')}` }
         });
 
-        if (!response.ok) throw new Error(`Error: ${response.status}`);
-
+        if (!response.ok) throw new Error('User not found');
         const data = await response.json();
-        console.log('Data from backend:', data);
 
+        // Display User Info
+        document.getElementById('user-name').textContent = data.fullName || 'N/A';
+        document.getElementById('user-username').textContent = data.username || 'N/A';
+        document.getElementById('user-email').textContent = data.email || 'N/A';
+
+        // Display Holdings
         const holdingsList = document.getElementById('holdings-list');
-        holdingsList.innerHTML = "";  
+        holdingsList.innerHTML = data.holdings.length === 0 
+            ? '<p class="no-holdings">No holdings found</p>'
+            : data.holdings.map(holding => `
+                <div class="holding-item">
+                    <span class="crypto-amount">${holding.amount} ${holding.symbol}</span>
+                    <span class="crypto-name">${holding.name}</span>
+                    <span class="dollar-value">$${holding.value.toFixed(2)}</span>
+                </div>
+            `).join('');
 
-        if (data.holdings && data.holdings.length === 0) {
-            holdingsList.innerHTML = "<p>No holdings found for this user.</p>";
-        } else {
-            data.holdings.forEach(holding => {
-                const holdingElement = document.createElement('div');
-                holdingElement.textContent = `${holding.name} (${holding.symbol}): ${holding.amount} units worth $${holding.value}`;
-                holdingsList.appendChild(holdingElement);
-            });
-        }
-
-        // Update total balance display as sum of amounts
-        const totalAmount = data.holdings.reduce((total, holding) => total + holding.value, 0);
-        document.getElementById('total-balance').value = totalAmount;
+        // Calculate and display total balance (sum of values)
+        const totalBalance = data.holdings.reduce((sum, h) => sum + h.value, 0);
+        document.getElementById('total-balance').value = totalBalance.toFixed(2);
 
     } catch (error) {
-        console.error("Error fetching holdings:", error);
+        console.error("Error:", error);
+        Swal.fire('Error', error.message, 'error');
     }
 });
 
-// Add New Holding and Update Total Amount
+// Add Holding Function (Single, optimized version)
 document.getElementById('add-holding-btn').addEventListener('click', async () => {
     const uid = document.getElementById('uid-search').value;
-    const name = document.getElementById('holding-name').value;
-    const symbol = document.getElementById('holding-symbol').value;
-    const amount = parseFloat(document.getElementById('holding-amount').value);
-    const value = parseFloat(document.getElementById('holding-value').value);
+    const [name, symbol, amount, value] = [
+        document.getElementById('holding-name').value.trim(),
+        document.getElementById('holding-symbol').value.trim(),
+        parseFloat(document.getElementById('holding-amount').value),
+        parseFloat(document.getElementById('holding-value').value)
+    ];
+
+    // Basic validation
+    if (!uid || !name || !symbol || isNaN(amount) || isNaN(value)) {
+        Swal.fire('Error', 'Please fill all fields with valid values', 'error');
+        return;
+    }
 
     try {
         // Add new holding
@@ -273,46 +281,35 @@ document.getElementById('add-holding-btn').addEventListener('click', async () =>
             body: JSON.stringify({ uid, name, symbol, amount, value })
         });
 
-        if (!response.ok) throw new Error(`Error: ${response.statusText}`);
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || 'Failed to add holding');
+        }
 
-        console.log("Holding added successfully");
-
-        // Fetch updated holdings to recalculate total amount
-        const updatedHoldingsResponse = await fetch(`${API_BASE_URL}admin/user-holdings/${uid}`, {
-            method: 'GET',
-            headers: {
-                'Authorization': `Bearer ${localStorage.getItem('authToken')}`
-            }
-        });
-
-        const updatedData = await updatedHoldingsResponse.json();
-
-        // Calculate the new total amount
-        const totalAmount = updatedData.holdings.reduce((total, holding) => total + holding.amount, 0);
-
-        await fetch(`${API_BASE_URL}/admin/user-balance/${uid}`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${localStorage.getItem('authToken')}`
-            },
-            body: JSON.stringify({ totalBalance: totalAmount })
-        });
-
-        console.log("Total amount updated:", totalAmount);
-
-        document.getElementById('total-balance').value = totalAmount;
+        // Refresh display and clear form
+        document.getElementById('search-btn').click();
+        document.getElementById('holding-name').value = '';
+        document.getElementById('holding-symbol').value = '';
+        document.getElementById('holding-amount').value = '';
+        document.getElementById('holding-value').value = '';
+        
+        Swal.fire('Success', 'Holding added successfully', 'success');
 
     } catch (error) {
-        console.error("Error updating holdings or balance:", error);
+        console.error("Error:", error);
+        Swal.fire('Error', error.message, 'error');
     }
 });
 
-
-// Event listener for updating total balance from input
+// Update Balance Function (Simplified)
 document.getElementById('update-balance-btn').addEventListener('click', async () => {
     const uid = document.getElementById('uid-search').value;
     const newBalance = parseFloat(document.getElementById('total-balance').value);
+
+    if (!uid || isNaN(newBalance)) {
+        Swal.fire('Error', 'Invalid user or balance value', 'error');
+        return;
+    }
 
     try {
         const response = await fetch(`${API_BASE_URL}/admin/user-balance/${uid}`, {
@@ -325,29 +322,22 @@ document.getElementById('update-balance-btn').addEventListener('click', async ()
         });
 
         const result = await response.json();
-        
         if (!response.ok) throw new Error(result.message || 'Failed to update balance');
 
-        // Show success message
         Swal.fire({
             icon: 'success',
             title: 'Balance Updated!',
             text: result.emailSent 
-                ? 'Balance updated and user notified via email' 
+                ? 'Balance updated and user notified' 
                 : 'Balance updated successfully',
             timer: 3000
         });
 
     } catch (error) {
-        console.error("Error updating balance:", error);
-        Swal.fire({
-            icon: 'error',
-            title: 'Update Failed',
-            text: error.message || 'Failed to update balance',
-        });
+        console.error("Error:", error);
+        Swal.fire('Error', error.message, 'error');
     }
 });
-
 //Js for custom inyteraction in pin generation
 
 document.addEventListener("DOMContentLoaded", () => {

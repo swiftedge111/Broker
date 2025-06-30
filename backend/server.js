@@ -145,12 +145,9 @@ const depositSchema = new mongoose.Schema({
       },
   ],
 });
-
-// Initialize the Deposit model
 const Deposit = mongoose.model('Deposit', depositSchema);
-
-// Export the Deposit model
 module.exports = { Deposit };
+
 
 //PIN GENERATION DATABASE
 
@@ -167,23 +164,18 @@ const Pin = mongoose.model('Pin', pinSchema);
 
 // Transaction Schema
 const TransactionSchema = new mongoose.Schema({
-  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  uid: { type: String, required: true }, // User's UID for easy reference
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  uid: { type: String, required: true },
   type: { type: String, enum: ['credit', 'debit'], required: true },
   amount: { type: Number, required: true },
-  method: { type: String, enum: ['crypto', 'bank', 'card', 'other'] },
-  details: { type: Object },  
-  status: { 
-    type: String, 
-    enum: ['pending', 'completed', 'rejected', 'failed'],
-    default: 'pending'
-  },
-  adminNotes: { type: String },
-  adminActionAt: { type: Date },
+  method: { type: String, enum: ['holding', 'manual'], required: true },
+  details: { type: Object },
+  status: { type: String, default: 'completed' },
   createdAt: { type: Date, default: Date.now }
-}, { timestamps: true });
+});
 
 const Transaction = mongoose.model('Transaction', TransactionSchema);
+
 
 // Fetch Bank Transfer Data
 app.get('/admin/deposit/bank-transfer', authenticateJWT, async (req, res) => {
@@ -567,6 +559,7 @@ app.post('/login', async (req, res) => {
 });
 
 
+
 //Backend to get user details
 
 app.get('/user-info', async (req, res) => {
@@ -627,7 +620,7 @@ app.get('/admin/user-holdings/:uid', authenticateJWT, async (req, res) => {
     }
 });
 
-//route to add new holding
+//Add holdings
 
 app.post('/admin/add-holding', authenticateJWT, async (req, res) => {
     const { uid, name, symbol, amount, value } = req.body;
@@ -635,22 +628,21 @@ app.post('/admin/add-holding', authenticateJWT, async (req, res) => {
         const user = await User.findOne({ uid });
         if (!user) return res.status(404).json({ message: 'User not found' });
 
-        // Add holding
+        // Add holding (existing functionality)
         user.holdings.push({ name, symbol, amount, value });
         
-        // Create transaction record
+        // Create transaction record (new addition)
         const transaction = new Transaction({
             userId: user._id,
             uid: user.uid,
             type: 'credit',
-            amount: value, // Using value since that's the monetary amount
+            amount: value, // Using value as the monetary amount
             method: 'holding',
             details: {
                 assetName: name,
                 assetSymbol: symbol,
                 units: amount
-            },
-            status: 'completed'
+            }
         });
         
         await transaction.save();
@@ -666,6 +658,7 @@ app.post('/admin/add-holding', authenticateJWT, async (req, res) => {
     }
 });
 
+
 // Update user's total balance
 
 // Update user's total balance with email notification
@@ -680,9 +673,9 @@ app.put('/admin/user-balance/:uid', authenticateJWT, async (req, res) => {
         const previousBalance = user.totalBalance;
         const fundingAmount = totalBalance - previousBalance;
 
-        // Only create transaction and send notification if this is a funding (positive amount)
+        // Only create transaction and send notification if it's a positive funding
         if (fundingAmount > 0) {
-            // Create transaction record
+            // Create a transaction
             const transaction = new Transaction({
                 userId: user._id,
                 uid: user.uid,
@@ -690,12 +683,13 @@ app.put('/admin/user-balance/:uid', authenticateJWT, async (req, res) => {
                 amount: fundingAmount,
                 method: 'manual',
                 details: {
-                    note: 'Admin balance adjustment'
+                    note: 'Account funding',
                 },
                 status: 'completed'
             });
             await transaction.save();
 
+            // Send email notification
             await sendFundingNotification(
                 user.email,
                 fundingAmount,
@@ -703,7 +697,7 @@ app.put('/admin/user-balance/:uid', authenticateJWT, async (req, res) => {
             );
         }
 
-        // Update the balance
+        // Update user balance
         user.totalBalance = totalBalance;
         await user.save();
 
@@ -717,6 +711,7 @@ app.put('/admin/user-balance/:uid', authenticateJWT, async (req, res) => {
         res.status(500).json({ message: "Server error" });
     }
 });
+
 
 // Backend route to get user portfolio
 app.get('/portfolio', authenticateJWT, async (req, res) => {
