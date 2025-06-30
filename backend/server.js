@@ -624,42 +624,46 @@ app.get('/admin/user-holdings/:uid', authenticateJWT, async (req, res) => {
 
 app.post('/admin/add-holding', authenticateJWT, async (req, res) => {
     const { uid, name, symbol, amount, value } = req.body;
+
     try {
         const user = await User.findOne({ uid });
         if (!user) return res.status(404).json({ message: 'User not found' });
 
-        // Add holding (existing functionality)
+        // Add the new holding
         user.holdings.push({ name, symbol, amount, value });
-        
-        // Create transaction record (new addition)
+
+        // Create a transaction record
         const transaction = new Transaction({
             userId: user._id,
             uid: user.uid,
             type: 'credit',
-            amount: value, // Using value as the monetary amount
+            amount: value,  
             method: 'holding',
             details: {
                 assetName: name,
                 assetSymbol: symbol,
                 units: amount
-            }
+            },
+            status: 'completed'
         });
-        
+
         await transaction.save();
+
+        // Recalculate totalBalance based on all holdings
+        user.totalBalance = user.holdings.reduce((sum, h) => sum + h.value, 0);
+
         await user.save();
-        
+
         res.json({ 
             message: 'Holding added successfully', 
-            holdings: user.holdings 
+            holdings: user.holdings,
+            totalBalance: user.totalBalance
         });
     } catch (error) {
         console.error('Error adding holding:', error);
         res.status(500).json({ message: 'Server error' });
     }
 });
-
-
-// Update user's total balance
 
 // Update user's total balance with email notification
 app.put('/admin/user-balance/:uid', authenticateJWT, async (req, res) => {

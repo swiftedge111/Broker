@@ -338,6 +338,8 @@ document.getElementById('update-balance-btn').addEventListener('click', async ()
         Swal.fire('Error', error.message, 'error');
     }
 });
+
+
 //Js for custom inyteraction in pin generation
 
 document.addEventListener("DOMContentLoaded", () => {
