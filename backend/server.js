@@ -165,44 +165,25 @@ const pinSchema = new mongoose.Schema({
 
 const Pin = mongoose.model('Pin', pinSchema);
 
-
 // Transaction Schema
-// const TransactionSchema = new mongoose.Schema({
-//   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-//   uid: { type: String, required: true }, // User's UID
-//   type: { type: String, enum: ['credit', 'debit'], required: true },
-//   amount: { type: Number, required: true },
-//   status: { 
-//     type: String, 
-//     enum: ['pending', 'completed', 'failed'], 
-//     default: 'pending' 
-//   },
-//   method: { type: String },  
-//   details: { type: Object },  
-//   description: { type: String },
-//   adminApproved: { type: Boolean, default: false },
-//   adminId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }, 
-// }, { timestamps: true });
-
-// const Transaction = mongoose.model('Transaction', TransactionSchema);
-
-
-// Transaction Model (add to your existing models)
-const transactionSchema = new mongoose.Schema({
+const TransactionSchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  uid: { type: String, required: true },
+  uid: { type: String, required: true }, // User's UID for easy reference
   type: { type: String, enum: ['credit', 'debit'], required: true },
   amount: { type: Number, required: true },
-  status: { type: String, enum: ['pending', 'approved', 'rejected', 'completed'], default: 'pending' },
-  method: { type: String, required: true }, // 'bank', 'crypto'
-  details: { type: Object }, // { bankName, accountNumber } or { cryptoType, walletAddress }
+  method: { type: String, enum: ['crypto', 'bank', 'card', 'other'] },
+  details: { type: Object },  
+  status: { 
+    type: String, 
+    enum: ['pending', 'completed', 'rejected', 'failed'],
+    default: 'pending'
+  },
+  adminNotes: { type: String },
   adminActionAt: { type: Date },
-  adminNotes: { type: String }
+  createdAt: { type: Date, default: Date.now }
 }, { timestamps: true });
 
-const Transaction = mongoose.model('Transaction', transactionSchema);
-
-
+const Transaction = mongoose.model('Transaction', TransactionSchema);
 
 // Fetch Bank Transfer Data
 app.get('/admin/deposit/bank-transfer', authenticateJWT, async (req, res) => {
@@ -229,7 +210,7 @@ app.post('/admin/deposit/bank-transfer', authenticateJWT, async (req, res) => {
           accountName, 
           swiftCode 
         },
-        $unset: { cryptoDetails: "", digitalWalletDetails: "" }  // Remove any unwanted fields
+        $unset: { cryptoDetails: "", digitalWalletDetails: "" }   
       },
       { new: true, upsert: true }
     );
@@ -654,15 +635,36 @@ app.post('/admin/add-holding', authenticateJWT, async (req, res) => {
         const user = await User.findOne({ uid });
         if (!user) return res.status(404).json({ message: 'User not found' });
 
+        // Add holding
         user.holdings.push({ name, symbol, amount, value });
+        
+        // Create transaction record
+        const transaction = new Transaction({
+            userId: user._id,
+            uid: user.uid,
+            type: 'credit',
+            amount: value, // Using value since that's the monetary amount
+            method: 'holding',
+            details: {
+                assetName: name,
+                assetSymbol: symbol,
+                units: amount
+            },
+            status: 'completed'
+        });
+        
+        await transaction.save();
         await user.save();
-        res.json({ message: 'Holding added successfully', holdings: user.holdings });
+        
+        res.json({ 
+            message: 'Holding added successfully', 
+            holdings: user.holdings 
+        });
     } catch (error) {
         console.error('Error adding holding:', error);
         res.status(500).json({ message: 'Server error' });
     }
 });
-
 
 // Update user's total balance
 
@@ -672,15 +674,28 @@ app.put('/admin/user-balance/:uid', authenticateJWT, async (req, res) => {
     const { totalBalance } = req.body;
 
     try {
-        // Get user's current balance first
         const user = await User.findOne({ uid });
         if (!user) return res.status(404).json({ message: "User not found" });
 
         const previousBalance = user.totalBalance;
         const fundingAmount = totalBalance - previousBalance;
 
-        // Only send notification if this is a funding (positive amount)
+        // Only create transaction and send notification if this is a funding (positive amount)
         if (fundingAmount > 0) {
+            // Create transaction record
+            const transaction = new Transaction({
+                userId: user._id,
+                uid: user.uid,
+                type: 'credit',
+                amount: fundingAmount,
+                method: 'manual',
+                details: {
+                    note: 'Admin balance adjustment'
+                },
+                status: 'completed'
+            });
+            await transaction.save();
+
             await sendFundingNotification(
                 user.email,
                 fundingAmount,
@@ -1135,7 +1150,6 @@ app.post('/verify-pin', async (req, res) => {
   }
 });6
 
-
 // Route to delete all pins
 app.delete('/admin/pins', authenticateJWT, async (req, res) => {
   try {
@@ -1186,81 +1200,71 @@ async function sendFundingNotification(email, amount, newBalance) {
   }
 }
 
-// Create Withdrawal
-app.post('/api/withdraw', authenticateJWT, async (req, res) => {
-  try {
-    const { amount, method, details } = req.body;
-    const userId = req.user.id;
 
-    // 1. Verify user balance
-    const user = await User.findById(userId);
-    if (!user) return res.status(404).send('User not found');
+// Backend Logic for withdrawals and Transactions history
+
+// Admin middleware
+const ADMIN_UIDS = ['admin123', 'admin456'];  
+
+const adminOnly = (req, res, next) => {
+  if (req.user && ADMIN_UIDS.includes(req.user.uid)) {
+    return next();
+  }
+  return res.status(403).json({ message: 'Admin access required' });
+};
+
+// Get Pending Withdrawals (Admin)
+app.get('/api/admin/withdrawals/pending', authenticateJWT, adminOnly, async (req, res) => {
+  try {
+    const withdrawals = await Transaction.find({ 
+      status: 'pending',
+      type: 'debit'
+    }).sort({ createdAt: -1 });
     
-    if (user.totalBalance < amount) {
-      return res.status(400).send('Insufficient balance');
-    }
-
-    // 2. Create transaction
-    const transaction = new Transaction({
-      userId,
-      uid: user.uid,
-      type: 'debit',
-      amount,
-      method,
-      details,
-      status: 'pending'
-    });
-
-    await transaction.save();
-
-    // 3. Notify admin (real implementation)
-    notifyAdmin(transaction);
-
-    res.status(201).json(transaction);
-  } catch (error) {
-    console.error('Withdrawal error:', error);
-    res.status(500).send('Server error');
-  }
-});
-
-// Get User Transactions
-app.get('/api/transactions', authenticateJWT, async (req, res) => {
-  try {
-    const transactions = await Transaction.find({ userId: req.user.id })
-      .sort({ createdAt: -1 })
-      .limit(50);
-    res.json(transactions);
+    res.json(withdrawals);
   } catch (error) {
     res.status(500).send('Server error');
   }
 });
 
-// Admin Approval Endpoint
-app.put('/api/admin/transactions/:id', authenticateJWT, async (req, res) => {
+// Process Withdrawal (Admin)
+app.put('/api/admin/withdrawals/:id', authenticateJWT, adminOnly, async (req, res) => {
   try {
-    const { action } = req.body; // 'approve' or 'reject'
+    const { action, notes } = req.body; // 'approve' or 'reject'
     const transaction = await Transaction.findById(req.params.id);
     
     if (!transaction) return res.status(404).send('Transaction not found');
-    if (transaction.status !== 'pending') return res.status(400).send('Transaction already processed');
+    if (transaction.status !== 'pending') {
+      return res.status(400).send('Transaction already processed');
+    }
 
-    // Update transaction
+    // Approve logic
     if (action === 'approve') {
-      // Deduct from user balance
-      await User.findByIdAndUpdate(transaction.userId, {
-        $inc: { totalBalance: -transaction.amount }
-      });
-      
+      // Check user balance
+      const user = await User.findOne({ uid: transaction.uid });
+      if (user.totalBalance < transaction.amount) {
+        return res.status(400).json({ 
+          message: 'User has insufficient balance' 
+        });
+      }
+
+      // Deduct from balance
+      user.totalBalance -= transaction.amount;
+      await user.save();
+
       transaction.status = 'completed';
-    } else {
+    } 
+    // Reject logic
+    else {
       transaction.status = 'rejected';
     }
 
+    // Update transaction
+    transaction.adminNotes = notes;
     transaction.adminActionAt = new Date();
-    transaction.adminNotes = req.body.notes || '';
     await transaction.save();
 
-    // Notify user (real implementation)
+    // Notify user (implement your notification system)
     notifyUser(transaction);
 
     res.json(transaction);
@@ -1268,6 +1272,7 @@ app.put('/api/admin/transactions/:id', authenticateJWT, async (req, res) => {
     res.status(500).send('Server error');
   }
 });
+
 
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => {

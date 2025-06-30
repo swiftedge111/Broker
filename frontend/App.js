@@ -486,18 +486,18 @@ document.getElementById('roi-calculator-form').addEventListener('submit', functi
 
 
 
- // Withdrawal Form Submission
+// Enhanced handleWithdrawalSubmit function
 async function handleWithdrawalSubmit(e) {
   e.preventDefault();
   
   const form = e.target;
-  const amount = parseFloat(form.amount.value);
+  const amount = parseFloat(form.querySelector('input[type="number"]').value);
   const method = form.closest('.withdrawal-method').id.includes('crypto') ? 'crypto' : 'bank';
   
   // Prepare details based on method
   const details = method === 'crypto' ? {
-    cryptoType: form.querySelector('#crypto-type').value,
-    walletAddress: form.querySelector('#crypto-wallet').value
+    type: form.querySelector('#crypto-type').value,
+    wallet: form.querySelector('#crypto-wallet').value
   } : {
     bankName: form.querySelector('#bank-name').value,
     accountNumber: form.querySelector('#account-number').value,
@@ -505,14 +505,11 @@ async function handleWithdrawalSubmit(e) {
   };
 
   try {
-    // 1. Verify PIN (your existing implementation)
-    const pinVerified = await verifyPin(); // Implement this based on your PIN system
-    
-    if (!pinVerified) {
-      throw new Error('PIN verification failed');
-    }
+    // Verify PIN first
+    const pinVerified = await verifyPin();
+    if (!pinVerified) throw new Error('PIN verification failed');
 
-    // 2. Submit withdrawal
+    // Submit withdrawal request
     const response = await fetch(`${API_BASE_URL}/api/withdraw`, {
       method: 'POST',
       headers: {
@@ -522,11 +519,14 @@ async function handleWithdrawalSubmit(e) {
       body: JSON.stringify({ amount, method, details })
     });
 
-    if (!response.ok) throw new Error('Withdrawal failed');
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Withdrawal failed');
+    }
 
     const transaction = await response.json();
 
-    // 3. Show success and refresh transactions
+    // Show success
     Swal.fire({
       icon: 'success',
       title: 'Withdrawal Submitted!',
@@ -534,14 +534,14 @@ async function handleWithdrawalSubmit(e) {
       confirmButtonText: 'OK'
     });
 
-    loadTransactions(); // Refresh the list
-    updateUserBalance(); // Refresh balance display
+    // Refresh transactions
+    loadTransactions();
+    updateUserBalance();
 
   } catch (error) {
-    Swal.fire('Error', error.message || 'Withdrawal failed', 'error');
+    Swal.fire('Error', error.message, 'error');
   }
 }
-
 // Load Real Transactions
 async function loadTransactions() {
   try {
@@ -560,28 +560,34 @@ async function loadTransactions() {
 
 
 // Render Transactions
+// Make sure your transaction rendering shows credit transactions
 function renderTransactions(transactions) {
-  const tbody = document.getElementById('transaction-list');
-  tbody.innerHTML = '';
+    const tbody = document.getElementById('transaction-list');
+    tbody.innerHTML = '';
 
-  transactions.forEach(tx => {
-    const row = document.createElement('tr');
-    row.innerHTML = `
-      <td>${new Date(tx.createdAt).toLocaleString()}</td>
-      <td class="type-${tx.type}">${tx.type.toUpperCase()}</td>
-      <td>$${tx.amount.toFixed(2)}</td>
-      <td><span class="status-${tx.status}">${tx.status.toUpperCase()}</span></td>
-      <td>${getTransactionDescription(tx)}</td>
-    `;
-    tbody.appendChild(row);
-  });
+    transactions.forEach(tx => {
+        const row = document.createElement('tr');
+        row.className = `transaction-${tx.type}`;
+        row.innerHTML = `
+            <td>${new Date(tx.createdAt).toLocaleString()}</td>
+            <td class="type-${tx.type}">${tx.type.toUpperCase()}</td>
+            <td>$${tx.amount.toFixed(2)}</td>
+            <td class="status-${tx.status}">${tx.status.toUpperCase()}</td>
+            <td>${getTransactionDescription(tx)}</td>
+        `;
+        tbody.appendChild(row);
+    });
 }
 
-// Helper function
+//Helper function to get transaction description
 function getTransactionDescription(tx) {
-  if (tx.type === 'credit') return 'Account funding';
-  if (tx.method === 'crypto') return `To: ${tx.details.walletAddress}`;
-  return `Bank: ${tx.details.bankName}`;
+    if (tx.type === 'credit') {
+        if (tx.method === 'holding') {
+            return `Funding: ${tx.details.assetName} (${tx.details.units} units)`;
+        }
+        return 'Account funding';
+    }
+    // ... rest of your withdrawal descriptions
 }
 
 // Initialize

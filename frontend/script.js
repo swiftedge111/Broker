@@ -118,12 +118,12 @@ class AuthForms {
                 await Swal.fire({
                     icon: 'success',
                     title: 'Login Successful!',
-                    text: 'Redirecting to your dashboard...',
+                    text: 'Redirecting to Welcome Page...',
                     showConfirmButton: false,
                     timer: 1500,
                     timerProgressBar: true,
                     willClose: () => {
-                        window.location.href = "welcome.html";
+                        window.location.href = "welcome.html";  
                     }
                 });
             } else {
@@ -203,9 +203,9 @@ class AuthForms {
                         <p class="text-sm text-gray-500 mt-2">A verification email has been sent to ${formData.email}</p>
                     `,
                     showConfirmButton: true,
-                    confirmButtonText: 'Continue to Dashboard',
+                    confirmButtonText: 'Continue to Login your Account',
                     willClose: () => {
-                        window.location.href = "welcome.html";
+                        window.location.href = "login.html";
                     }
                 });
                 

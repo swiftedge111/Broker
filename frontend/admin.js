@@ -233,7 +233,7 @@ document.getElementById('search-btn').addEventListener('click', async () => {
         console.log('Data from backend:', data);
 
         const holdingsList = document.getElementById('holdings-list');
-        holdingsList.innerHTML = ""; // Clear previous content
+        holdingsList.innerHTML = "";  
 
         if (data.holdings && data.holdings.length === 0) {
             holdingsList.innerHTML = "<p>No holdings found for this user.</p>";
@@ -246,7 +246,7 @@ document.getElementById('search-btn').addEventListener('click', async () => {
         }
 
         // Update total balance display as sum of amounts
-        const totalAmount = data.holdings.reduce((total, holding) => total + holding.amount, 0);
+        const totalAmount = data.holdings.reduce((total, holding) => total + holding.value, 0);
         document.getElementById('total-balance').value = totalAmount;
 
     } catch (error) {
@@ -462,7 +462,6 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 });
 
- 
 document.getElementById('deletePinsBtn').addEventListener('click', async () => {
     if (confirm("Are you sure you want to delete all pins? This action cannot be undone.")) {
         try {
@@ -485,23 +484,26 @@ document.getElementById('deletePinsBtn').addEventListener('click', async () => {
 });
  
 
-// Admin - Load Pending Withdrawals
+// Admin - Load Pending Withdrawals (Enhanced)
 async function loadPendingWithdrawals() {
   try {
-    const response = await fetch(`${API_BASE_URL}/api/admin/transactions?status=pending`, {
+    const response = await fetch(`${API_BASE_URL}/api/admin/withdrawals/pending`, {
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('authToken')}`
       }
     });
     
+    if (!response.ok) throw new Error('Failed to load withdrawals');
+    
     const withdrawals = await response.json();
     renderPendingWithdrawals(withdrawals);
   } catch (error) {
-    console.error('Failed to load withdrawals:', error);
+    console.error('Error:', error);
+    Swal.fire('Error', error.message, 'error');
   }
 }
 
-// Admin - Render Pending Withdrawals
+// Admin - Render Withdrawals with More Details
 function renderPendingWithdrawals(withdrawals) {
   const tbody = document.getElementById('pending-withdrawals');
   tbody.innerHTML = '';
@@ -509,14 +511,15 @@ function renderPendingWithdrawals(withdrawals) {
   withdrawals.forEach(tx => {
     const row = document.createElement('tr');
     row.innerHTML = `
-      <td>${new Date(tx.createdAt).toLocaleDateString()}</td>
+      <td>${new Date(tx.createdAt).toLocaleString()}</td>
       <td>${tx.uid}</td>
       <td>$${tx.amount.toFixed(2)}</td>
       <td>${tx.method}</td>
-      <td>${getTransactionDetails(tx)}</td>
+      <td>${getWithdrawalDetails(tx)}</td>
       <td class="action-buttons">
         <button class="btn-approve" data-id="${tx._id}">Approve</button>
         <button class="btn-reject" data-id="${tx._id}">Reject</button>
+        <button class="btn-view" data-id="${tx._id}">View</button>
       </td>
     `;
     tbody.appendChild(row);
@@ -532,28 +535,10 @@ function renderPendingWithdrawals(withdrawals) {
   });
 }
 
-// Admin - Handle Approval/Rejection
-async function handleAdminAction(txId, action) {
-  const notes = prompt(`Enter notes for ${action}:`, '');
-  if (notes === null) return; // User cancelled
-
-  try {
-    const response = await fetch(`${API_BASE_URL}/api/admin/transactions/${txId}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('authToken')}`
-      },
-      body: JSON.stringify({ action, notes })
-    });
-
-    if (!response.ok) throw new Error('Action failed');
-
-    const result = await response.json();
-    Swal.fire('Success', `Withdrawal ${action}d`, 'success');
-    loadPendingWithdrawals(); // Refresh list
-
-  } catch (error) {
-    Swal.fire('Error', error.message, 'error');
+// Helper function to show withdrawal details
+function getWithdrawalDetails(tx) {
+  if (tx.method === 'crypto') {
+    return `${tx.details.type} to ${tx.details.wallet.substring(0, 6)}...`;
   }
+  return `${tx.details.bankName} (${tx.details.accountNumber})`;
 }

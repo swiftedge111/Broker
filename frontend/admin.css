@@ -648,4 +648,202 @@ button:hover {
   }
 
  
- 
+ /* Withdrawal approval section styling */
+
+ /* ===== WITHDRAWAL APPROVALS STYLING ===== */
+.withdrawal-approvals-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid #eee;
+}
+
+.withdrawal-approvals-header h2 {
+  font-size: 1.5rem;
+  color: #333;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.withdrawal-approvals-header h2 i {
+  color: #FFA500;
+}
+
+.approvals-summary {
+  background: #FFF9E6;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-size: 0.9rem;
+  color: #8E6C00;
+}
+
+.approvals-summary .pending-count {
+  font-weight: bold;
+  color: #FF8C00;
+}
+
+/* Table styling */
+.withdrawals-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.withdrawals-table thead th {
+  background: #f8f9fa;
+  color: #495057;
+  font-weight: 600;
+  padding: 1rem;
+  text-align: left;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.withdrawals-table tbody tr {
+  transition: all 0.2s ease;
+}
+
+.withdrawals-table tbody tr:not(.empty-state):hover {
+  background-color: #f8f9fa;
+}
+
+.withdrawals-table td {
+  padding: 1rem;
+  border-bottom: 1px solid #eee;
+  vertical-align: middle;
+}
+
+/* Column specific styling */
+.col-date { width: 15%; min-width: 120px; }
+.col-uid { width: 15%; }
+.col-amount { width: 15%; }
+.col-method { width: 15%; }
+.col-details { width: 25%; }
+.col-actions { width: 15%; text-align: right; }
+
+/* Status badge */
+.status-badge {
+  display: inline-block;
+  padding: 0.35rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.status-badge.pending {
+  background: rgba(255, 165, 0, 0.1);
+  color: #FF8C00;
+}
+
+/* Action buttons */
+.action-buttons {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+.btn-approve, .btn-reject {
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+}
+
+.btn-approve {
+  background: #28a745;
+  color: white;
+}
+
+.btn-approve:hover {
+  background: #218838;
+  transform: translateY(-1px);
+}
+
+.btn-reject {
+  background: #dc3545;
+  color: white;
+}
+
+.btn-reject:hover {
+  background: #c82333;
+  transform: translateY(-1px);
+}
+
+/* Empty state styling */
+.empty-state td {
+  padding: 3rem 1rem;
+  text-align: center;
+}
+
+.empty-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  color: #6c757d;
+}
+
+.empty-content i {
+  font-size: 2rem;
+  color: #adb5bd;
+}
+
+/* Table footer */
+.table-footer {
+  margin-top: 1.5rem;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.btn-refresh {
+  background: transparent;
+  border: 1px solid #dee2e6;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  color: #495057;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.btn-refresh:hover {
+  background: #f8f9fa;
+  border-color: #adb5bd;
+}
+
+.last-updated {
+  font-size: 0.85rem;
+  color: #6c757d;
+  margin-left: 1rem;
+  display: inline-flex;
+  align-items: center;
+}
+
+/* Responsive adjustments */
+@media (max-width: 992px) {
+  .col-date, .col-uid, .col-method { width: auto; }
+  .action-buttons { flex-direction: column; }
+}
+
+@media (max-width: 768px) {
+  .withdrawals-table {
+    display: block;
+    overflow-x: auto;
+  }
+  
+  .withdrawal-approvals-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+}
