@@ -1823,8 +1823,7 @@ body.no-scroll {
   background-color: #3c8d40;
 }
 
-/* Transaction history Section */
-
+/* ===== Transaction History Section ===== */
 .transaction-container {
   background: white;
   padding: 2rem;
@@ -1838,6 +1837,7 @@ body.no-scroll {
   display: flex;
   gap: 0.5rem;
   margin-bottom: 1.5rem;
+  flex-wrap: wrap;
 }
 
 .filter-btn {
@@ -1856,13 +1856,20 @@ body.no-scroll {
   color: white;
 }
 
+.transaction-table-container {
+  max-height: 600px;
+  overflow-y: auto;
+  margin-bottom: 1rem;
+  border-radius: 12px;
+  border: 1px solid #f0f0f0;
+}
+
 .transaction-table {
   width: 100%;
   border-collapse: separate;
   border-spacing: 0;
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  border-radius: 0;
+  box-shadow: none;
 }
 
 .transaction-table th {
@@ -1871,6 +1878,9 @@ body.no-scroll {
   padding: 1rem;
   text-align: left;
   font-weight: 500;
+  position: sticky;
+  top: 0;
+  z-index: 10;
 }
 
 .transaction-table td {
@@ -1924,4 +1934,73 @@ body.no-scroll {
 .type-debit {
   color: #e74c3c;
   font-weight: 500;
+}
+
+/* Load More Button */
+.btn-load-more {
+  background: #3498db;
+  color: white;
+  border: none;
+  padding: 0.8rem 1.5rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background 0.3s ease;
+  display: block;
+  margin: 1rem auto 0;
+}
+
+.btn-load-more:hover {
+  background: #2980b9;
+}
+
+/* Animation for new rows */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.transaction-table tr {
+  animation: fadeIn 0.3s ease forwards;
+}
+
+/* Transaction footer */
+.transaction-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 1rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .transaction-container {
+    padding: 1rem;
+  }
+  
+  .transaction-table th, 
+  .transaction-table td {
+    padding: 0.75rem 0.5rem;
+    font-size: 0.9rem;
+  }
+  
+  .filter-btn {
+    padding: 0.5rem 0.8rem;
+    font-size: 0.85rem;
+  }
+  
+  .transaction-table-container {
+    max-height: 500px;
+  }
+}
+
+@media (max-width: 480px) {
+  .transaction-footer {
+    flex-direction: column;
+    gap: 1rem;
+  }
+  
+  .btn-load-more {
+    width: 100%;
+  }
 }

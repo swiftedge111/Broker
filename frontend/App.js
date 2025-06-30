@@ -485,117 +485,120 @@ document.getElementById('roi-calculator-form').addEventListener('submit', functi
 });
 
 
+//Transaction History Functionality Integration
 
-// Enhanced handleWithdrawalSubmit function
-async function handleWithdrawalSubmit(e) {
-  e.preventDefault();
-  
-  const form = e.target;
-  const amount = parseFloat(form.querySelector('input[type="number"]').value);
-  const method = form.closest('.withdrawal-method').id.includes('crypto') ? 'crypto' : 'bank';
-  
-  // Prepare details based on method
-  const details = method === 'crypto' ? {
-    type: form.querySelector('#crypto-type').value,
-    wallet: form.querySelector('#crypto-wallet').value
-  } : {
-    bankName: form.querySelector('#bank-name').value,
-    accountNumber: form.querySelector('#account-number').value,
-    routingNumber: form.querySelector('#routing-number').value
-  };
+// Transaction History Management
+let currentPage = 1;
+const transactionsPerPage = 10;
+let currentFilter = 'all';
 
-  try {
-    // Verify PIN first
-    const pinVerified = await verifyPin();
-    if (!pinVerified) throw new Error('PIN verification failed');
-
-    // Submit withdrawal request
-    const response = await fetch(`${API_BASE_URL}/api/withdraw`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('authToken')}`
-      },
-      body: JSON.stringify({ amount, method, details })
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || 'Withdrawal failed');
-    }
-
-    const transaction = await response.json();
-
-    // Show success
-    Swal.fire({
-      icon: 'success',
-      title: 'Withdrawal Submitted!',
-      text: `Your $${amount} withdrawal is pending approval`,
-      confirmButtonText: 'OK'
-    });
-
-    // Refresh transactions
+// Initialize transaction history
+function initTransactionHistory() {
     loadTransactions();
-    updateUserBalance();
-
-  } catch (error) {
-    Swal.fire('Error', error.message, 'error');
-  }
-}
-// Load Real Transactions
-async function loadTransactions() {
-  try {
-    const response = await fetch(`${API_BASE_URL}/api/transactions`, {
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('authToken')}`
-      }
-    });
-    
-    const transactions = await response.json();
-    renderTransactions(transactions);
-  } catch (error) {
-    console.error('Failed to load transactions:', error);
-  }
+    setupFilterButtons();
+    document.getElementById('load-more').addEventListener('click', loadMoreTransactions);
 }
 
+// Load transactions with current filter
+async function loadTransactions(page = 1, filter = 'all') {
+    try {
+        const url = `${API_BASE_URL}/api/transactions?page=${page}&limit=${transactionsPerPage}${
+            filter !== 'all' ? `&filter=${filter}` : ''
+        }`;
 
-// Render Transactions
-// Make sure your transaction rendering shows credit transactions
-function renderTransactions(transactions) {
+        const response = await fetch(url, {
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken')}` }
+        });
+
+        if (!response.ok) throw new Error('Failed to load transactions');
+        
+        const { transactions, total, pages } = await response.json();
+        
+        renderTransactions(transactions, page === 1);
+        updateTransactionCount(total);
+        
+        // Show/hide load more button
+        document.getElementById('load-more').style.display = 
+            page < pages ? 'block' : 'none';
+
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Failed to load transactions. Please try again.');
+    }
+}
+
+// Render transactions to the table
+function renderTransactions(transactions, clearExisting = true) {
     const tbody = document.getElementById('transaction-list');
-    tbody.innerHTML = '';
+    if (clearExisting) tbody.innerHTML = '';
 
     transactions.forEach(tx => {
         const row = document.createElement('tr');
-        row.className = `transaction-${tx.type}`;
         row.innerHTML = `
-            <td>${new Date(tx.createdAt).toLocaleString()}</td>
-            <td class="type-${tx.type}">${tx.type.toUpperCase()}</td>
-            <td>$${tx.amount.toFixed(2)}</td>
-            <td class="status-${tx.status}">${tx.status.toUpperCase()}</td>
-            <td>${getTransactionDescription(tx)}</td>
+            <td>${formatDate(tx.createdAt)}</td>
+            <td class="type-${tx.type}">${tx.type === 'credit' ? 'Deposit' : 'Withdrawal'}</td>
+            <td>${tx.type === 'credit' ? '+' : '-'}$${tx.amount.toFixed(2)}</td>
+            <td><span class="status-${tx.status}">${tx.status.charAt(0).toUpperCase() + tx.status.slice(1)}</span></td>
+            <td>${getTransactionDetails(tx)}</td>
         `;
         tbody.appendChild(row);
     });
 }
 
-//Helper function to get transaction description
-function getTransactionDescription(tx) {
-    if (tx.type === 'credit') {
-        if (tx.method === 'holding') {
-            return `Funding: ${tx.details.assetName} (${tx.details.units} units)`;
-        }
-        return 'Account funding';
+// Helper function to format transaction details
+function getTransactionDetails(tx) {
+    if (tx.method === 'holding') {
+        return `Received ${tx.details.units} ${tx.details.assetSymbol}`;
     }
-    // ... rest of your withdrawal descriptions
+    if (tx.method === 'withdrawal') {
+        return `To ${tx.details.method}: ${tx.details.accountNumber?.slice(-4) || ''}`;
+    }
+    return tx.details.note || 'Transaction';
 }
 
-// Initialize
+// Format date for display
+function formatDate(dateString) {
+    const options = { 
+        year: 'numeric', 
+        month: 'short', 
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    };
+    return new Date(dateString).toLocaleDateString('en-US', options);
+}
+
+// Update transaction count display
+function updateTransactionCount(total) {
+    const displayedCount = document.getElementById('transaction-list').children.length;
+    document.getElementById('transaction-count').textContent = 
+        `${displayedCount} of ${total}`;
+}
+
+// Load more transactions
+function loadMoreTransactions() {
+    currentPage++;
+    loadTransactions(currentPage, currentFilter);
+}
+
+// Setup filter buttons
+function setupFilterButtons() {
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelector('.filter-btn.active').classList.remove('active');
+            btn.classList.add('active');
+            
+            currentFilter = btn.dataset.filter;
+            currentPage = 1;
+            loadTransactions(currentPage, currentFilter);
+        });
+    });
+}
+
+// Initialize when transactions section loads
 document.addEventListener('DOMContentLoaded', () => {
-  loadTransactions();
-  
-  // Attach form handlers
-  document.querySelectorAll('.withdrawal-form').forEach(form => {
-    form.addEventListener('submit', handleWithdrawalSubmit);
-  });
+    // Only initialize if transactions section exists
+    if (document.getElementById('transactions')) {
+        initTransactionHistory();
+    }
 });

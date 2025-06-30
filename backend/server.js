@@ -1212,64 +1212,37 @@ const adminOnly = (req, res, next) => {
   return res.status(403).json({ message: 'Admin access required' });
 };
 
-// Get Pending Withdrawals (Admin)
-app.get('/api/admin/withdrawals/pending', authenticateJWT, adminOnly, async (req, res) => {
-  try {
-    const withdrawals = await Transaction.find({ 
-      status: 'pending',
-      type: 'debit'
-    }).sort({ createdAt: -1 });
-    
-    res.json(withdrawals);
-  } catch (error) {
-    res.status(500).send('Server error');
-  }
-});
+ 
+//Transaction History Route
 
-// Process Withdrawal (Admin)
-app.put('/api/admin/withdrawals/:id', authenticateJWT, adminOnly, async (req, res) => {
-  try {
-    const { action, notes } = req.body; // 'approve' or 'reject'
-    const transaction = await Transaction.findById(req.params.id);
-    
-    if (!transaction) return res.status(404).send('Transaction not found');
-    if (transaction.status !== 'pending') {
-      return res.status(400).send('Transaction already processed');
-    }
+// Get user transactions with pagination
+app.get('/api/transactions', authenticateJWT, async (req, res) => {
+    try {
+        const { page = 1, limit = 10, filter } = req.query;
+        const skip = (page - 1) * limit;
+        
+        const query = { userId: req.user.id };
+        if (filter && ['credit', 'debit'].includes(filter)) {
+            query.type = filter;
+        }
 
-    // Approve logic
-    if (action === 'approve') {
-      // Check user balance
-      const user = await User.findOne({ uid: transaction.uid });
-      if (user.totalBalance < transaction.amount) {
-        return res.status(400).json({ 
-          message: 'User has insufficient balance' 
+        const transactions = await Transaction.find(query)
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(parseInt(limit));
+
+        const total = await Transaction.countDocuments(query);
+
+        res.json({
+            transactions,
+            total,
+            page: parseInt(page),
+            pages: Math.ceil(total / limit)
         });
-      }
-
-      // Deduct from balance
-      user.totalBalance -= transaction.amount;
-      await user.save();
-
-      transaction.status = 'completed';
-    } 
-    // Reject logic
-    else {
-      transaction.status = 'rejected';
+    } catch (error) {
+        console.error('Error fetching transactions:', error);
+        res.status(500).json({ message: 'Server error' });
     }
-
-    // Update transaction
-    transaction.adminNotes = notes;
-    transaction.adminActionAt = new Date();
-    await transaction.save();
-
-    // Notify user (implement your notification system)
-    notifyUser(transaction);
-
-    res.json(transaction);
-  } catch (error) {
-    res.status(500).send('Server error');
-  }
 });
 
 
