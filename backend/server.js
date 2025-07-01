@@ -9,9 +9,8 @@ const path = require('path');
 const { v4: uuidv4 } = require('uuid');
 const crypto = require('crypto');
 const nodemailer = require('nodemailer');
-// const { type } = require('os');
 const cron = require('node-cron');
- 
+const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args)); 
 const app = express();
 
 
@@ -64,7 +63,7 @@ const authenticateJWT = (req, res, next) => {
             return res.status(403).json({ message: 'Invalid token' });
         }
 
-        console.log('Decoded Token:', user); // Log decoded JWT payload
+        console.log('Decoded Token:', user); 
         req.user = user;
         next();
     });
@@ -162,15 +161,24 @@ const pinSchema = new mongoose.Schema({
 
 const Pin = mongoose.model('Pin', pinSchema);
 
-// Transaction Schema
 const TransactionSchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   uid: { type: String, required: true },
   type: { type: String, enum: ['credit', 'debit'], required: true },
   amount: { type: Number, required: true },
-  method: { type: String, enum: ['holding', 'manual'], required: true },
+  method: { 
+    type: String, 
+    enum: ['holding', 'manual', 'crypto', 'bank'], 
+    required: true 
+  },
   details: { type: Object },
-  status: { type: String, default: 'completed' },
+  status: { 
+    type: String, 
+    enum: ['pending', 'completed', 'rejected'], 
+    default: 'completed' 
+  },
+  processedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  processedAt: { type: Date },
   createdAt: { type: Date, default: Date.now }
 });
 
@@ -537,20 +545,18 @@ app.post('/login', async (req, res) => {
           return res.status(400).json({ message: 'Invalid credentials' });
       }
 
-      // Update status to 'Active' and set lastLogin to the current date and time
       user.status = 'Active';
-      user.lastLogin = new Date().toISOString();  // You can format it as you prefer (e.g., 'YYYY-MM-DD HH:MM:SS')
-
+      user.lastLogin = new Date().toISOString();   
       // Save the updated user data
       await user.save();
 
       // Create JWT token
-      const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '2h' });
+      const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '5h' });
 
       res.json({ 
           token, 
           username: user.username,   
-          name: user.name || user.username // Optionally include the full name if available
+          name: user.name || user.username  
       });
   } catch (error) {
       console.error("Error during login:", error);
@@ -1028,7 +1034,7 @@ function authenticateAdmin(req, res, next) {
 }
 
 //Route to generate pin
-const SALT_ROUNDS = 10; // Adjust the salt rounds for encryption strength
+const SALT_ROUNDS = 10;  
 
 
 // Generate PIN API
@@ -1147,7 +1153,7 @@ app.post('/verify-pin', async (req, res) => {
     console.error('Error verifying PIN:', error);
     return res.status(500).json({ message: 'Server error. Please try again later.' });
   }
-});6
+});
 
 // Route to delete all pins
 app.delete('/admin/pins', authenticateJWT, async (req, res) => {
@@ -1245,6 +1251,166 @@ app.get('/api/transactions', authenticateJWT, async (req, res) => {
     }
 });
 
+//Withdrawal Request Route and Admin Approval
+
+// POST /api/withdraw - Create withdrawal request
+app.post('/api/withdraw', authenticateJWT, async (req, res) => {
+    try {
+        console.log('Received withdrawal request:', {
+            headers: req.headers,
+            body: req.body,
+            user: req.user
+        });
+
+        const { amount, method, walletAddress, bankDetails, cryptoType } = req.body;
+        const userId = req.user.id; // Changed from _id to id to match JWT structure
+
+        console.log('Looking for user with ID:', userId);
+
+        // Verify user exists
+        const user = await User.findById(userId).select('+totalBalance');
+        if (!user) {
+            console.error('User not found with ID:', userId);
+            return res.status(404).json({ 
+                success: false,
+                error: 'User not found',
+                userId: userId,
+                suggestion: 'Check if user exists in database'
+            });
+        }
+
+        console.log('Found user:', {
+            id: user._id,
+            email: user.email,
+            balance: user.totalBalance
+        });
+
+        // Validate amount
+        if (!amount || isNaN(amount)) {
+            console.error('Invalid amount:', amount);
+            return res.status(400).json({ 
+                success: false,
+                error: 'Invalid amount',
+                received: amount
+            });
+        }
+
+        if (amount <= 0) {
+            console.error('Non-positive amount:', amount);
+            return res.status(400).json({ 
+                success: false,
+                error: 'Amount must be positive',
+                received: amount
+            });
+        }
+
+        // Validate method
+        if (!method || !['crypto', 'bank'].includes(method)) {
+            console.error('Invalid method:', method);
+            return res.status(400).json({ 
+                success: false,
+                error: 'Invalid withdrawal method',
+                received: method,
+                validMethods: ['crypto', 'bank']
+            });
+        }
+
+        // Method-specific validation
+        if (method === 'crypto') {
+            if (!walletAddress || !cryptoType) {
+                console.error('Missing crypto fields:', { walletAddress, cryptoType });
+                return res.status(400).json({ 
+                    success: false,
+                    error: 'Wallet address and crypto type are required',
+                    received: { walletAddress, cryptoType }
+                });
+            }
+        } else {
+            if (!bankDetails || !bankDetails.bankName || !bankDetails.accountNumber) {
+                console.error('Incomplete bank details:', bankDetails);
+                return res.status(400).json({ 
+                    success: false,
+                    error: 'Bank details are incomplete',
+                    requiredFields: ['bankName', 'accountNumber'],
+                    received: bankDetails
+                });
+            }
+        }
+
+        // Check sufficient balance (with 5% buffer for fees)
+        if (user.totalBalance < amount * 1.05) {
+            console.error('Insufficient balance:', {
+                currentBalance: user.totalBalance,
+                requiredAmount: amount * 1.05
+            });
+            return res.status(400).json({ 
+                success: false,
+                error: 'Insufficient balance (including potential fees)',
+                currentBalance: user.totalBalance,
+                requiredAmount: amount * 1.05,
+                feePercentage: 5
+            });
+        }
+
+        // Create withdrawal record
+        const withdrawal = new Transaction({
+            userId,
+            uid: user.uid,
+            type: 'debit',
+            amount,
+            method,
+            details: {
+                ...(method === 'crypto' ? { 
+                    walletAddress,
+                    cryptoType 
+                } : bankDetails),
+                pinVerified: true
+            },
+            status: 'pending'
+        });
+
+        await withdrawal.save();
+
+        console.log('Withdrawal created successfully:', withdrawal);
+
+        res.json({ 
+            success: true, 
+            message: 'Withdrawal request submitted for admin approval',
+            withdrawalId: withdrawal._id,
+            record: withdrawal
+        });
+
+    } catch (error) {
+        console.error('Withdrawal processing error:', {
+            message: error.message,
+            stack: error.stack,
+            body: req.body,
+            user: req.user
+        });
+        
+        res.status(500).json({ 
+            success: false,
+            error: 'Internal server error',
+            message: error.message,
+            timestamp: new Date().toISOString()
+        });
+    }
+});
+
+
+// Health check route
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'healthy' });
+});
+
+const KEEP_ALIVE_URL = process.env.RENDER_EXTERNAL_URL || 'https://swift-edge-backend.onrender.com';
+const INTERVAL = 14 * 60 * 1000;  
+
+setInterval(() => {
+  fetch(`${KEEP_ALIVE_URL}/health`)
+    .then(() => console.log('✅ Keep-alive ping successful'))
+    .catch(err => console.error('❌ Keep-alive ping failed:', err));
+}, INTERVAL);
 
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => {

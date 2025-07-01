@@ -1,11 +1,10 @@
-
 class AuthForms {
     constructor() {
         this.forms = {
             login: document.getElementById('loginForm'),
             signup: document.getElementById('signupForm')
         };
-        
+        this.API_BASE_URL = window.API_BASE_URL || 'https://swift-edge-backend.onrender.com';
         this.init();
     }
     
@@ -13,16 +12,22 @@ class AuthForms {
         if (this.forms.login || this.forms.signup) {
             await this.loadSweetAlert();
             this.setupForms();
+            this.setupPasswordVisibilityToggles();
         }
+    }
+
+    setupPasswordVisibilityToggles() {
+        // Setup for all password toggle buttons
+        document.querySelectorAll('.toggle-password').forEach(toggle => {
+            const input = toggle.closest('.input-group').querySelector('input[type="password"], input[type="text"]');
+            toggle.addEventListener('click', () => this.togglePasswordVisibility(input, toggle));
+        });
     }
     
     async loadSweetAlert() {
         try {
             if (typeof Swal === 'undefined') {
-                await Promise.race([
-                    this.loadScript('https://cdn.jsdelivr.net/npm/sweetalert2@11'),
-                    new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 3000))
-                ]);
+                await this.loadScript('https://cdn.jsdelivr.net/npm/sweetalert2@11');
             }
         } catch (error) {
             console.error('Failed to load SweetAlert2:', error);
@@ -43,29 +48,17 @@ class AuthForms {
     }
     
     setupForms() {
-        // Login Form
         if (this.forms.login) {
             this.forms.login.addEventListener('submit', async (e) => {
                 e.preventDefault();
                 await this.handleLogin();
             });
-            
-
-            const togglePassword = this.forms.login.querySelector('.toggle-password');
-            const passwordInput = this.forms.login.querySelector('#loginPassword');
-            togglePassword.addEventListener('click', () => this.togglePasswordVisibility(passwordInput, togglePassword));
         }
         
-        // Signup Form
         if (this.forms.signup) {
             this.forms.signup.addEventListener('submit', async (e) => {
                 e.preventDefault();
                 await this.handleSignup();
-            });
-            const passwordToggles = this.forms.signup.querySelectorAll('.toggle-password');
-            passwordToggles.forEach(toggle => {
-                const input = toggle.closest('.input-group').querySelector('input[type="password"]');
-                toggle.addEventListener('click', () => this.togglePasswordVisibility(input, toggle));
             });
         }
     }
@@ -74,66 +67,86 @@ class AuthForms {
         const isPassword = input.type === 'password';
         input.type = isPassword ? 'text' : 'password';
         const icon = toggle.querySelector('svg');
-        if (isPassword) {
-            icon.innerHTML = '<path d="M13.359 11.238C15.06 9.72 16 8 16 8s-3-5.5-8-5.5a7.028 7.028 0 0 0-2.79.588l.77.771A5.944 5.944 0 0 1 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.134 13.134 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755-.165.165-.337.328-.517.486l.708.709z"/><path d="M11.297 9.176a3.5 3.5 0 0 0-4.474-4.474l.823.823a2.5 2.5 0 0 1 2.829 2.829l.822.822zm-2.943 1.299.822.822a3.5 3.5 0 0 1-4.474-4.474l.823.823a2.5 2.5 0 0 0 2.829 2.829z"/><path d="M3.35 5.47c-.18.16-.353.322-.518.487A13.134 13.134 0 0 0 1.172 8l.195.288c.335.48.83 1.12 1.465 1.755C4.121 11.332 5.881 12.5 8 12.5c.716 0 1.39-.133 2.02-.36l.77.772A7.029 7.029 0 0 1 8 13.5C3 13.5 0 8 0 8s.939-1.721 2.641-3.238l.708.709zm10.296 8.884-12-12 .708-.708 12 12-.708.708z"/>';
-        } else {
-            icon.innerHTML = '<path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8zM1.173 8a13.133 13.133 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.133 13.133 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5c-2.12 0-3.879-1.168-5.168-2.457A13.134 13.134 0 0 1 1.172 8z"/><path d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0z"/>';
-        }
+        icon.innerHTML = isPassword ? 
+            '<path d="M13.359 11.238C15.06 9.72 16 8 16 8s-3-5.5-8-5.5a7.028 7.028 0 0 0-2.79.588l.77.771A5.944 5.944 0 0 1 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.134 13.134 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755-.165.165-.337.328-.517.486l.708.709z"/><path d="M11.297 9.176a3.5 3.5 0 0 0-4.474-4.474l.823.823a2.5 2.5 0 0 1 2.829 2.829l.822.822zm-2.943 1.299.822.822a3.5 3.5 0 0 1-4.474-4.474l.823.823a2.5 2.5 0 0 0 2.829 2.829z"/><path d="M3.35 5.47c-.18.16-.353.322-.518.487A13.134 13.134 0 0 0 1.172 8l.195.288c.335.48.83 1.12 1.465 1.755C4.121 11.332 5.881 12.5 8 12.5c.716 0 1.39-.133 2.02-.36l.77.772A7.029 7.029 0 0 1 8 13.5C3 13.5 0 8 0 8s.939-1.721 2.641-3.238l.708.709zm10.296 8.884-12-12 .708-.708 12 12-.708.708z"/>' : 
+            '<path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8zM1.173 8a13.133 13.133 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.133 13.133 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5c-2.12 0-3.879-1.168-5.168-2.457A13.134 13.134 0 0 1 1.172 8z"/><path d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0z"/>';
         toggle.setAttribute('aria-label', isPassword ? 'Hide password' : 'Show password');
     }
     
     async handleLogin() {
         const form = this.forms.login;
         const btn = form.querySelector('#loginBtn');
+        const originalBtnText = btn.innerHTML;
         const loginInput = form.querySelector('#loginEmail').value.trim().toLowerCase();
         const password = form.querySelector('#loginPassword').value;
-        if (!loginInput || !password) {
-            this.showError('Please fill in all required fields');
+        
+        // Clear previous errors
+        this.clearFieldErrors(form);
+        
+        // Validate inputs
+        if (!loginInput) {
+            this.showFieldError(form.querySelector('#loginEmail'), 'Please enter your email or username');
+            return;
+        }
+        
+        if (!password) {
+            this.showFieldError(form.querySelector('#loginPassword'), 'Please enter your password');
             return;
         }
         
         try {
-            btn.classList.add('is-loading');
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span> Signing in...';
             btn.disabled = true;
             
-            const loginData = {
-                username: loginInput.includes('@') ? undefined : loginInput,
-                email: loginInput.includes('@') ? loginInput : undefined,
-                password
-            };
-            Object.keys(loginData).forEach(key => loginData[key] === undefined && delete loginData[key]);
-            const response = await fetch(`${API_BASE_URL}/login`, {
+            const response = await this.fetchWithTimeout(`${this.API_BASE_URL}/login`, {
                 method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify(loginData),
-                signal: AbortSignal.timeout(10000) 
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    [loginInput.includes('@') ? 'email' : 'username']: loginInput,
+                    password
+                })
             });
+            
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Invalid login details');
+            }
             
             const result = await response.json();
             
-            if (response.ok) {
-                localStorage.setItem("authToken", result.token);
-                await Swal.fire({
-                    icon: 'success',
-                    title: 'Login Successful!',
-                    text: 'Redirecting to Welcome Page...',
-                    showConfirmButton: false,
-                    timer: 1500,
-                    timerProgressBar: true,
-                    willClose: () => {
-                        window.location.href = "welcome.html";  
-                    }
-                });
-            } else {
-                throw new Error(result.message || "Invalid credentials");
-            }
+            localStorage.setItem("authToken", result.token);
+            localStorage.setItem("userData", JSON.stringify({
+                username: result.username,
+                fullName: result.fullName,
+                email: result.email
+            }));
+            
+            await this.showSuccess({
+                title: 'Welcome back!',
+                text: 'You have successfully signed in',
+                timer: 1500,
+                onClose: () => window.location.href = "welcome.html"
+            });
         } catch (error) {
             console.error("Login error:", error);
-            this.showError(error.message || "Login failed. Please try again.");
+            
+            let errorMessage = "We couldn't sign you in";
+            let resolution = "Please check your details and try again";
+            
+            if (error.name === 'AbortError') {
+                errorMessage = "Connection timeout";
+                resolution = "Please check your internet connection";
+            } else if (error.message.includes('credentials') || error.message.includes('Invalid')) {
+                errorMessage = "Incorrect login details";
+                resolution = "Check your email/username and password";
+            }
+            
+            this.showError({
+                title: errorMessage,
+                text: resolution
+            });
         } finally {
-            btn.classList.remove('is-loading');
+            btn.innerHTML = originalBtnText;
             btn.disabled = false;
         }
     }
@@ -141,8 +154,8 @@ class AuthForms {
     async handleSignup() {
         const form = this.forms.signup;
         const btn = form.querySelector('#signupBtn');
+        const originalBtnText = btn.innerHTML;
         
-        // Form data collection with validation
         const formData = {
             fullName: form.querySelector('#fullName').value.trim(),
             email: form.querySelector('#signupEmail').value.trim().toLowerCase(),
@@ -152,74 +165,149 @@ class AuthForms {
             phone: form.querySelector('#phone').value.trim(),
             terms: form.querySelector('[name="terms"]').checked
         };
-        if (!formData.fullName || !formData.email || !formData.username || !formData.password || !formData.confirmPassword) {
-            this.showError('Please fill in all required fields');
+        
+        // Clear previous errors
+        this.clearFieldErrors(form);
+        
+        // Validate inputs
+        if (!formData.fullName) {
+            this.showFieldError(form.querySelector('#fullName'), 'Please enter your full name');
             return;
         }
         
-        if (!this.validateEmail(formData.email)) {
-            this.showError('Please enter a valid email address');
+        if (!formData.email) {
+            this.showFieldError(form.querySelector('#signupEmail'), 'Please enter your email');
+            return;
+        } else if (!this.validateEmail(formData.email)) {
+            this.showFieldError(form.querySelector('#signupEmail'), 'Please enter a valid email address');
             return;
         }
         
-        if (formData.password !== formData.confirmPassword) {
-            this.showError('Passwords do not match');
+        if (!formData.username) {
+            this.showFieldError(form.querySelector('#signupUsername'), 'Please choose a username');
             return;
         }
         
-        if (!this.validatePassword(formData.password)) {
-            this.showError('Password must be at least 8 characters with one number and one special character');
+        if (!formData.password) {
+            this.showFieldError(form.querySelector('#signupPassword'), 'Please create a password');
+            return;
+        } else if (!this.validatePassword(formData.password)) {
+            this.showFieldError(form.querySelector('#signupPassword'), 'Password must contain at least 8 characters with one number and one special character');
             return;
         }
         
-        // Validate terms agreement
+        if (!formData.confirmPassword) {
+            this.showFieldError(form.querySelector('#confirmPassword'), 'Please confirm your password');
+            return;
+        } else if (formData.password !== formData.confirmPassword) {
+            this.showFieldError(form.querySelector('#confirmPassword'), 'Passwords do not match');
+            return;
+        }
+        
         if (!formData.terms) {
-            this.showError('You must agree to the terms and conditions');
+            this.showError({
+                title: 'Terms and Conditions',
+                text: 'You must agree to our terms and conditions to continue',
+                type: 'warning'
+            });
             return;
         }
         
         try {
-            btn.classList.add('is-loading');
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span> Creating account...';
             btn.disabled = true;
+            
             const { confirmPassword, terms, ...submitData } = formData;
             
-            const response = await fetch(`${API_BASE_URL}/signup`, {
+            const response = await this.fetchWithTimeout(`${this.API_BASE_URL}/signup`, {
                 method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify(submitData),
-                signal: AbortSignal.timeout(15000)  
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(submitData)
             });
+            
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Registration failed');
+            }
             
             const result = await response.json();
             
-            if (response.ok) {
-                await Swal.fire({
-                    icon: 'success',
-                    title: 'Account Created!',
-                    html: `
-                        <p>Your account has been successfully created.</p>
-                        <p class="text-sm text-gray-500 mt-2">A verification email has been sent to ${formData.email}</p>
-                    `,
-                    showConfirmButton: true,
-                    confirmButtonText: 'Continue to Login your Account',
-                    willClose: () => {
-                        window.location.href = "login.html";
-                    }
-                });
-                
-                form.reset();
-            } else {
-                throw new Error(result.message || "Signup failed. Please try again.");
-            }
+            await this.showSuccess({
+                title: 'Welcome to SwiftEdge!',
+                html: `<p>Your account has been successfully created.</p>
+                      <p class="text-muted small mt-2">We've sent a welcome email to <strong>${formData.email}</strong></p>`,
+                confirmButtonText: 'Continue to Login',
+                onClose: () => window.location.href = "login.html"
+            });
+            
+            form.reset();
         } catch (error) {
             console.error("Signup error:", error);
-            this.showError(error.message || "An error occurred during signup. Please try again.");
+            
+            let errorMessage = "We couldn't create your account";
+            let resolution = "Please try again";
+            
+            if (error.name === 'AbortError') {
+                errorMessage = "Connection timeout";
+                resolution = "Please check your internet connection";
+            } else if (error.message.includes('already exists')) {
+                if (error.message.includes('email')) {
+                    errorMessage = "Email already registered";
+                    resolution = "Try logging in or use a different email";
+                    this.showFieldError(form.querySelector('#signupEmail'), 'This email is already in use');
+                } else if (error.message.includes('username')) {
+                    errorMessage = "Username taken";
+                    resolution = "Please choose a different username";
+                    this.showFieldError(form.querySelector('#signupUsername'), 'Username not available');
+                }
+            }
+            
+            this.showError({
+                title: errorMessage,
+                text: resolution
+            });
         } finally {
-            btn.classList.remove('is-loading');
+            btn.innerHTML = originalBtnText;
             btn.disabled = false;
         }
+    }
+    
+    async fetchWithTimeout(resource, options = {}) {
+        const { timeout = 15000 } = options;
+        const controller = new AbortController();
+        const id = setTimeout(() => controller.abort(), timeout);
+        
+        try {
+            const response = await fetch(resource, {
+                ...options,
+                signal: controller.signal  
+            });
+            clearTimeout(id);
+            return response;
+        } catch (error) {
+            clearTimeout(id);
+            throw error;
+        }
+    }
+    
+    clearFieldErrors(form) {
+        form.querySelectorAll('.field-error').forEach(el => el.remove());
+        form.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
+    }
+    
+    showFieldError(inputElement, message) {
+        const formGroup = inputElement.closest('.input-group') || inputElement.closest('.form-group');
+        if (!formGroup) return;
+        
+        let errorElement = formGroup.querySelector('.field-error');
+        if (!errorElement) {
+            errorElement = document.createElement('div');
+            errorElement.className = 'field-error text-danger mt-1 small';
+            formGroup.appendChild(errorElement);
+        }
+        errorElement.textContent = message;
+        inputElement.classList.add('is-invalid');
+        inputElement.focus();
     }
     
     validateEmail(email) {
@@ -232,16 +320,35 @@ class AuthForms {
         return re.test(password);
     }
     
-    showError(message) {
+    showError({ title, text, type = 'error' }) {
         if (typeof Swal !== 'undefined') {
             Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: message,
+                icon: type,
+                title,
+                text,
                 confirmButtonColor: '#4361ee',
             });
         } else {
-            alert(`Error: ${message}`);
+            alert(`${title}\n\n${text}`);
+        }
+    }
+    
+    showSuccess({ title, text, html, timer, confirmButtonText, onClose }) {
+        if (typeof Swal !== 'undefined') {
+            return Swal.fire({
+                icon: 'success',
+                title,
+                text,
+                html,
+                showConfirmButton: !!confirmButtonText,
+                confirmButtonText,
+                timer,
+                timerProgressBar: !!timer,
+                willClose: onClose
+            });
+        } else {
+            alert(`${title}\n\n${text || ''}`);
+            if (onClose) onClose();
         }
     }
 }
@@ -251,13 +358,11 @@ document.addEventListener('DOMContentLoaded', () => {
     new AuthForms();
 });
 
-// Service Worker Registration for Performance
+// Service Worker Registration
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/sw.js').then(registration => {
-            console.log('ServiceWorker registration successful');
-        }).catch(err => {
-            console.log('ServiceWorker registration failed: ', err);
-        });
+        navigator.serviceWorker.register('/sw.js')
+            .then(reg => console.log('Service Worker registered'))
+            .catch(err => console.log('Service Worker registration failed: ', err));
     });
 }

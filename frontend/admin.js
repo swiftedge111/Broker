@@ -302,45 +302,46 @@ document.getElementById('add-holding-btn').addEventListener('click', async () =>
 });
 
 // Update Balance Function (Simplified)
-document.getElementById('update-balance-btn').addEventListener('click', async () => {
-    const uid = document.getElementById('uid-search').value;
-    const newBalance = parseFloat(document.getElementById('total-balance').value);
 
-    if (!uid || isNaN(newBalance)) {
-        Swal.fire('Error', 'Invalid user or balance value', 'error');
-        return;
-    }
+// document.getElementById('update-balance-btn').addEventListener('click', async () => {
+//     const uid = document.getElementById('uid-search').value;
+//     const newBalance = parseFloat(document.getElementById('total-balance').value);
 
-    try {
-        const response = await fetch(`${API_BASE_URL}/admin/user-balance/${uid}`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${localStorage.getItem('authToken')}`
-            },
-            body: JSON.stringify({ totalBalance: newBalance })
-        });
+//     if (!uid || isNaN(newBalance)) {
+//         Swal.fire('Error', 'Invalid user or balance value', 'error');
+//         return;
+//     }
 
-        const result = await response.json();
-        if (!response.ok) throw new Error(result.message || 'Failed to update balance');
+//     try {
+//         const response = await fetch(`${API_BASE_URL}/admin/user-balance/${uid}`, {
+//             method: 'PUT',
+//             headers: {
+//                 'Content-Type': 'application/json',
+//                 'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+//             },
+//             body: JSON.stringify({ totalBalance: newBalance })
+//         });
 
-        Swal.fire({
-            icon: 'success',
-            title: 'Balance Updated!',
-            text: result.emailSent 
-                ? 'Balance updated and user notified' 
-                : 'Balance updated successfully',
-            timer: 3000
-        });
+//         const result = await response.json();
+//         if (!response.ok) throw new Error(result.message || 'Failed to update balance');
 
-    } catch (error) {
-        console.error("Error:", error);
-        Swal.fire('Error', error.message, 'error');
-    }
-});
+//         Swal.fire({
+//             icon: 'success',
+//             title: 'Balance Updated!',
+//             text: result.emailSent 
+//                 ? 'Balance updated and user notified' 
+//                 : 'Balance updated successfully',
+//             timer: 3000
+//         });
+
+//     } catch (error) {
+//         console.error("Error:", error);
+//         Swal.fire('Error', error.message, 'error');
+//     }
+// });
 
 
-//Js for custom inyteraction in pin generation
+//Js for custom interaction in pin generation
 
 document.addEventListener("DOMContentLoaded", () => {
     const pinTypeDropdown = document.getElementById("pin-type");
@@ -476,61 +477,4 @@ document.getElementById('deletePinsBtn').addEventListener('click', async () => {
 });
  
 
-// Admin - Load Pending Withdrawals (Enhanced)
-async function loadPendingWithdrawals() {
-  try {
-    const response = await fetch(`${API_BASE_URL}/api/admin/withdrawals/pending`, {
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('authToken')}`
-      }
-    });
-    
-    if (!response.ok) throw new Error('Failed to load withdrawals');
-    
-    const withdrawals = await response.json();
-    renderPendingWithdrawals(withdrawals);
-  } catch (error) {
-    console.error('Error:', error);
-    Swal.fire('Error', error.message, 'error');
-  }
-}
-
-// Admin - Render Withdrawals with More Details
-function renderPendingWithdrawals(withdrawals) {
-  const tbody = document.getElementById('pending-withdrawals');
-  tbody.innerHTML = '';
-
-  withdrawals.forEach(tx => {
-    const row = document.createElement('tr');
-    row.innerHTML = `
-      <td>${new Date(tx.createdAt).toLocaleString()}</td>
-      <td>${tx.uid}</td>
-      <td>$${tx.amount.toFixed(2)}</td>
-      <td>${tx.method}</td>
-      <td>${getWithdrawalDetails(tx)}</td>
-      <td class="action-buttons">
-        <button class="btn-approve" data-id="${tx._id}">Approve</button>
-        <button class="btn-reject" data-id="${tx._id}">Reject</button>
-        <button class="btn-view" data-id="${tx._id}">View</button>
-      </td>
-    `;
-    tbody.appendChild(row);
-  });
-
-  // Add event listeners
-  document.querySelectorAll('.btn-approve').forEach(btn => {
-    btn.addEventListener('click', () => handleAdminAction(btn.dataset.id, 'approve'));
-  });
-  
-  document.querySelectorAll('.btn-reject').forEach(btn => {
-    btn.addEventListener('click', () => handleAdminAction(btn.dataset.id, 'reject'));
-  });
-}
-
-// Helper function to show withdrawal details
-function getWithdrawalDetails(tx) {
-  if (tx.method === 'crypto') {
-    return `${tx.details.type} to ${tx.details.wallet.substring(0, 6)}...`;
-  }
-  return `${tx.details.bankName} (${tx.details.accountNumber})`;
-}
+ 

@@ -1627,202 +1627,6 @@ body.no-scroll {
   }
 }
 
-
-/* Modal Base Styles */
-.modal {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0.5); /* Semi-transparent background */
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-}
-
-/* Hide Modal By Default */
-.modal.hidden {
-  display: none;
-}
-
-/* Modal Content */
-.modal-content {
-  background-color: white;
-  width: 90%;
-  max-width: 500px;
-  padding: 20px;
-  border-radius: 8px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  text-align: center;
-}
-
-.modal-content h3 {
-  margin-top: 0;
-  color: #333;
-}
-
-/* Transaction Details */
-.transaction-details p {
-  margin: 10px 0;
-  font-size: 16px;
-  color: #555;
-}
-
-/* Modal Buttons */
-.modal-actions {
-  margin-top: 20px;
-}
-
-.modal-actions .btn {
-  padding: 10px 20px;
-  font-size: 16px;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
-}
-
-.modal-actions .btn-ref {
-  background-color: #f44336; /* Red */
-  color: white;
-  margin-right: 10px;
-}
-
-.modal-actions .btn-green {
-  background-color: #4CAF50; /* Green */
-  color: white;
-}
-
-
-/* css styling for numeric keyboard */
-
-/* Custom Card Container */
-.custom-card {
-  font-family: 'Arial', sans-serif;
-  background-color: #fff;
-  padding: 30px 40px;
-  border-radius: 12px;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
-  width: 100%;
-  max-width: 450px;
-  text-align: center;
-  margin: 50px auto; /* Center the card on the page */
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  position: absolute;  /* This allows it to overlap other elements */
-  top: 0;  /* Adjust to the desired position */
-  left: 0;
-  right: 0;
-  z-index: 10;  /* Higher z-index makes sure it appears on top */
-  display: none;  /* Initially hidden */
-}
-
-/* Title Styling */
-.custom-title {
-  font-size: 24px;
-  color: #222;
-  margin-bottom: 30px;
-  font-weight: 600;
-}
-
-/* PIN Input Field */
-.pin-container {
-  margin-bottom: 25px;
-}
-
-.pin-field {
-  font-size: 32px;
-  letter-spacing: 10px;
-  width: 100%;
-  padding: 15px;
-  border: 2px solid #ddd;
-  border-radius: 8px;
-  background-color: #f4f4f4;
-  text-align: center;
-  color: #333;
-  cursor: not-allowed;
-}
-
-.pin-field:focus {
-  outline: none;
-  border-color: #007bff;
-}
-
-/* Keyboard Layout */
-.custom-keyboard {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 15px;
-}
-
-/* Keyboard Key Styling */
-.keyboard-key {
-  font-size: 18px;
-  padding: 18px;
-  border-radius: 8px;
-  background-color: #eef1f5;
-  border: 1px solid #ddd;
-  cursor: pointer;
-  color: #444;
-  font-weight: bold;
-  transition: background-color 0.3s ease, transform 0.2s ease;
-}
-
-.keyboard-key:hover {
-  background-color: #e1e6ea;
-  transform: scale(1.05);
-}
-
-.keyboard-key:active {
-  background-color: #d0d4d8;
-  transform: scale(0.98);
-}
-
-/* Cancel Key Styling */
-.cancel-key {
-  background-color: #ff6b6b;
-  color: white;
-}
-
-.cancel-key:hover {
-  background-color: #ff4949;
-}
-
-.cancel-key:active {
-  background-color: #e63939;
-}
-
-/* Help Key Styling */
-.help-key {
-  background-color: #f39c12;
-  color: white;
-}
-
-.help-key:hover {
-  background-color: #e67e22;
-}
-
-.help-key:active {
-  background-color: #d35400;
-}
-
-/* Submit Key Styling */
-.submit-key {
-  background-color: #4caf50;
-  color: white;
-  grid-column: span 3; /* Span across all three columns */
-}
-
-.submit-key:hover {
-  background-color: #45a049;
-}
-
-.submit-key:active {
-  background-color: #3c8d40;
-}
-
 /* ===== Transaction History Section ===== */
 .transaction-container {
   background: white;
@@ -2003,4 +1807,265 @@ body.no-scroll {
   .btn-load-more {
     width: 100%;
   }
+}
+
+/* Withdrawal modal and pin modal */
+
+/* ===== MODAL STYLES ===== */
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  display: none;
+}
+
+.modal-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+}
+
+.modal-container {
+  background-color: #fff;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+  width: 100%;
+  max-width: 450px;
+  z-index: 1001;
+  animation: modalFadeIn 0.3s ease-out;
+}
+
+@keyframes modalFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.modal-header {
+  padding: 20px;
+  border-bottom: 1px solid #f0f0f0;
+  position: relative;
+}
+
+.modal-header h3 {
+  margin: 0;
+  font-size: 1.4rem;
+  color: #333;
+  font-weight: 600;
+}
+
+.modal-close {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: #999;
+  transition: color 0.2s;
+}
+
+.modal-close:hover {
+  color: #333;
+}
+
+.modal-body {
+  padding: 20px;
+}
+
+.modal-footer {
+  padding: 15px 20px;
+  border-top: 1px solid #f0f0f0;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+/* Transaction Summary Styles */
+.transaction-details {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.detail-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+}
+
+.detail-row.total {
+  border-top: 1px solid #f0f0f0;
+  padding-top: 15px;
+  margin-top: 5px;
+}
+
+.detail-label {
+  color: #666;
+  font-weight: 500;
+}
+
+.detail-value {
+  color: #333;
+  font-weight: 600;
+}
+
+.detail-row.total .detail-label {
+  font-size: 1.1rem;
+}
+
+.detail-row.total .detail-value {
+  font-size: 1.1rem;
+  color: #2a52be;
+}
+
+/* Button Styles */
+.btn {
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+  font-size: 0.95rem;
+}
+
+.btn-primary {
+  background-color: #2a52be;
+  color: white;
+}
+
+.btn-primary:hover {
+  background-color: #1a42a8;
+  transform: translateY(-1px);
+}
+
+.btn-secondary {
+  background-color: #f0f0f0;
+  color: #333;
+}
+
+.btn-secondary:hover {
+  background-color: #e0e0e0;
+}
+
+.btn-link {
+  background: none;
+  border: none;
+  color: #2a52be;
+  cursor: pointer;
+  padding: 0;
+  font-size: 0.9rem;
+}
+
+.btn-link:hover {
+  text-decoration: underline;
+}
+
+/* PIN Modal Specific Styles */
+.pin-modal {
+  max-width: 350px;
+}
+
+.pin-instructions {
+  text-align: center;
+  margin-bottom: 20px;
+  color: #555;
+}
+
+.pin-display {
+  margin-bottom: 25px;
+  display: flex;
+  justify-content: center;
+}
+
+.pin-dots {
+  display: flex;
+  gap: 15px;
+}
+
+.pin-dot {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid #ddd;
+  position: relative;
+}
+
+.pin-dot.filled::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #2a52be;
+}
+
+.pin-keyboard {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.pin-key {
+  padding: 15px 0;
+  border-radius: 8px;
+  background-color: #f8f8f8;
+  border: none;
+  font-size: 1.2rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.pin-key:hover {
+  background-color: #e8e8e8;
+  transform: translateY(-2px);
+}
+
+.pin-key:active {
+  transform: translateY(0);
+}
+
+.pin-key i {
+  font-size: 1.1rem;
+}
+
+.cancel-key {
+  color: #d9534f;
+}
+
+.submit-key {
+  background-color: #5cb85c;
+  color: white;
+}
+
+.submit-key:hover {
+  background-color: #4cae4c;
+}
+
+.forgot-pin {
+  margin-right: auto;
+  font-size: 0.85rem;
 }

@@ -514,47 +514,88 @@
     </div>
 
     <!-- Transaction Summary Modal -->
-    <div id="transaction-summary-modal" class="modal hidden">
-      <div class="modal-content">
-        <h3>Transaction Summary</h3>
-        <div class="transaction-details">
-          <p><strong>Amount:</strong> <span id="summary-amount">$0.00</span></p>
-          <p><strong>Withdrawal Method:</strong> <span id="summary-method">N/A</span></p>
-          <p><strong>Additional Info:</strong> <span id="summary-info">N/A</span></p>
+    <div id="transaction-summary-modal" class="modal">
+      <div class="modal-overlay"></div>
+      <div class="modal-container">
+        <div class="modal-header">
+          <h3>Transaction Summary</h3>
+          <button class="modal-close">&times;</button>
         </div>
-        <div class="modal-actions">
-          <button id="cancel-transaction" class="btn btn-ref">Cancel</button>
-          <button id="confirm-transaction" class="btn btn-green">Continue</button>
+        <div class="modal-body">
+          <div class="transaction-details">
+            <div class="detail-row">
+              <span class="detail-label">Amount:</span>
+              <span class="detail-value" id="summary-amount">$0.00</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Withdrawal Method:</span>
+              <span class="detail-value" id="summary-method">N/A</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Destination:</span>
+              <span class="detail-value" id="summary-info">N/A</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Fee:</span>
+              <span class="detail-value" id="summary-fee">$0.00</span>
+            </div>
+            <div class="detail-row total">
+              <span class="detail-label">Total:</span>
+              <span class="detail-value" id="summary-total">$0.00</span>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button id="cancel-transaction" class="btn btn-secondary">Cancel</button>
+          <button id="confirm-transaction" class="btn btn-primary">Confirm Withdrawal</button>
         </div>
       </div>
     </div>
 
-   <!-- withdrawal pin --> 
-    <div class="custom-card" style="display: none;">
-      <h1 class="custom-title">
-          <strong>Please enter your 4 or 6-digit PIN to proceed with the withdrawal.</strong>
-      </h1>
-  
-      <!-- PIN Input Section -->
-      <div class="pin-container">
-          <input type="text" id="custom-pin" class="pin-field" minlength="4" maxlength="6" readonly placeholder="----" />
-      </div>
-  
-      <!-- Onscreen Keyboard -->
-      <div class="custom-keyboard">
-          <button class="keyboard-key" data-key="1">1</button>
-          <button class="keyboard-key" data-key="2">2</button>
-          <button class="keyboard-key" data-key="3">3</button>
-          <button class="keyboard-key" data-key="4">4</button>
-          <button class="keyboard-key" data-key="5">5</button>
-          <button class="keyboard-key" data-key="6">6</button>
-          <button class="keyboard-key" data-key="7">7</button>
-          <button class="keyboard-key" data-key="8">8</button>
-          <button class="keyboard-key" data-key="9">9</button>
-          <button class="keyboard-key cancel-key" data-key="clear">&#10005; Cancel</button>
-          <button class="keyboard-key" data-key="0">0</button>
-          <button class="keyboard-key help-key" data-key="question">?</button>
-          <button class="keyboard-key submit-key" data-key="submit">Submit</button>
+    <!-- Withdrawal PIN Modal -->
+    <div id="withdrawal-pin-modal" class="modal">
+      <div class="modal-overlay"></div>
+      <div class="modal-container pin-modal">
+        <div class="modal-header">
+          <h3>Security Verification</h3>
+        </div>
+        <div class="modal-body">
+          <div class="pin-instructions">
+            <p>Please enter your 4 or 6-digit PIN to authorize this withdrawal</p>
+          </div>
+          <div class="pin-display">
+            <div class="pin-dots">
+              <span class="pin-dot"></span>
+              <span class="pin-dot"></span>
+              <span class="pin-dot"></span>
+              <span class="pin-dot"></span>
+              <span class="pin-dot"></span>
+              <span class="pin-dot"></span>
+            </div>
+            <input type="password" id="hidden-pin-input" maxlength="6" style="opacity: 0; position: absolute;">
+          </div>
+          <div class="pin-keyboard">
+            <button class="pin-key" data-key="1">1</button>
+            <button class="pin-key" data-key="2">2</button>
+            <button class="pin-key" data-key="3">3</button>
+            <button class="pin-key" data-key="4">4</button>
+            <button class="pin-key" data-key="5">5</button>
+            <button class="pin-key" data-key="6">6</button>
+            <button class="pin-key" data-key="7">7</button>
+            <button class="pin-key" data-key="8">8</button>
+            <button class="pin-key" data-key="9">9</button>
+            <button class="pin-key cancel-key" data-action="clear">
+              <i class="fas fa-undo"></i>
+            </button>
+            <button class="pin-key" data-key="0">0</button>
+            <button class="pin-key submit-key" data-action="submit">
+              <i class="fas fa-check"></i>
+            </button>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-link forgot-pin">Forgot PIN?</button>
+        </div>
       </div>
     </div>
   

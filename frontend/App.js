@@ -190,17 +190,17 @@ function copyToClipboard(elementId) {
 }
 
 // Js code for withdrawal toggle functionality
-document.querySelectorAll('.withdrawal-tab').forEach(tab => {
-  tab.addEventListener('click', () => {
-      document.querySelectorAll('.withdrawal-tab').forEach(t => t.classList.remove('active'));
-      tab.classList.add('active');
+// document.querySelectorAll('.withdrawal-tab').forEach(tab => {
+//   tab.addEventListener('click', () => {
+//       document.querySelectorAll('.withdrawal-tab').forEach(t => t.classList.remove('active'));
+//       tab.classList.add('active');
 
-      const method = tab.dataset.method;
-      document.querySelectorAll('.withdrawal-method').forEach(methodDiv => {
-          methodDiv.style.display = methodDiv.id === `${method}-method` ? 'block' : 'none';
-      });
-  });
-});
+//       const method = tab.dataset.method;
+//       document.querySelectorAll('.withdrawal-method').forEach(methodDiv => {
+//           methodDiv.style.display = methodDiv.id === `${method}-method` ? 'block' : 'none';
+//       });
+//   });
+// });
 
 
 function copyToClipboard(elementId) {
@@ -601,4 +601,295 @@ document.addEventListener('DOMContentLoaded', () => {
     if (document.getElementById('transactions')) {
         initTransactionHistory();
     }
+});
+
+//Withdrawal section functionality
+
+document.addEventListener('DOMContentLoaded', function() {
+  // Tab switching
+  const withdrawalTabs = document.querySelectorAll('.withdrawal-tab');
+  withdrawalTabs.forEach(tab => {
+    tab.addEventListener('click', function() {
+      const method = this.dataset.method;
+      
+      // Update active tab
+      withdrawalTabs.forEach(t => t.classList.remove('active'));
+      this.classList.add('active');
+      
+      // Show corresponding form
+      document.querySelectorAll('.withdrawal-method').forEach(form => {
+        form.style.display = 'none';
+      });
+      document.getElementById(`${method}-method`).style.display = 'block';
+    });
+  });
+  
+  // Form submission
+  const cryptoForm = document.getElementById('crypto-method').querySelector('form');
+  const bankForm = document.getElementById('bank-method').querySelector('form');
+  
+  cryptoForm.addEventListener('submit', handleWithdrawalSubmit);
+  bankForm.addEventListener('submit', handleWithdrawalSubmit);
+  
+  function handleWithdrawalSubmit(e) {
+    e.preventDefault();
+    
+    const form = e.target;
+    const formData = new FormData(form);
+    const withdrawalData = {};
+    const isCrypto = form.closest('.withdrawal-method').id.includes('crypto');
+    
+    for (const [key, value] of formData.entries()) {
+      withdrawalData[key] = value;
+    }
+    
+    // Get the correct amount field based on method
+    const amountField = isCrypto ? 'crypto-amount' : 'bank-amount';
+    const amountInput = document.getElementById(amountField);
+    const amount = parseFloat(withdrawalData[amountField]);
+    
+    // Validate amount
+    if (!amountInput.value || isNaN(amount)) {
+      amountInput.focus();
+      alert('Please enter a valid amount');
+      return;
+    }
+    
+    if (amount <= 0) {
+      amountInput.focus();
+      alert('Amount must be greater than zero');
+      return;
+    }
+    
+    // Set withdrawal method
+    withdrawalData.method = isCrypto ? 'crypto' : 'bank';
+    
+    // Calculate fee (1.5% for crypto, 1% for bank)
+    const fee = isCrypto ? amount * 0.015 : amount * 0.01;
+    const total = amount + fee;
+    
+    // Create currency formatter
+    const formatter = new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD'
+    });
+    
+    // Update summary modal
+    document.getElementById('summary-amount').textContent = formatter.format(amount);
+    document.getElementById('summary-method').textContent = isCrypto 
+      ? `Crypto (${withdrawalData['crypto-type']})` 
+      : 'Bank Transfer';
+      
+    document.getElementById('summary-info').textContent = isCrypto
+      ? withdrawalData['crypto-wallet']
+      : `${withdrawalData['bank-name']} - ${withdrawalData['account-number']}`;
+      
+    document.getElementById('summary-fee').textContent = formatter.format(fee);
+    document.getElementById('summary-total').textContent = formatter.format(total);
+    
+    // Store withdrawal data for later use
+    document.getElementById('transaction-summary-modal').dataset.withdrawalData = JSON.stringify({
+      ...withdrawalData,
+      amount: amount,
+      fee: fee,
+      total: total
+    });
+    
+    // Show summary modal
+    document.getElementById('transaction-summary-modal').style.display = 'flex';
+  }
+  
+  // Modal Controls
+  document.querySelector('.modal-close').addEventListener('click', function() {
+    document.getElementById('transaction-summary-modal').style.display = 'none';
+  });
+  
+  document.getElementById('cancel-transaction').addEventListener('click', function() {
+    document.getElementById('transaction-summary-modal').style.display = 'none';
+  });
+  
+  document.getElementById('confirm-transaction').addEventListener('click', function() {
+    document.getElementById('transaction-summary-modal').style.display = 'none';
+    document.getElementById('withdrawal-pin-modal').style.display = 'flex';
+  });
+  
+  // PIN Input Handling
+  const pinInput = document.getElementById('hidden-pin-input');
+  const pinDots = document.querySelectorAll('.pin-dot');
+  
+  document.querySelectorAll('.pin-key[data-key]').forEach(key => {
+    key.addEventListener('click', function() {
+      if (pinInput.value.length < 6) {
+        pinInput.value += this.dataset.key;
+        updatePinDots();
+      }
+    });
+  });
+  
+  document.querySelector('.pin-key[data-action="clear"]').addEventListener('click', function() {
+    pinInput.value = '';
+    updatePinDots();
+  });
+  
+  document.querySelector('.pin-key[data-action="submit"]').addEventListener('click', submitWithdrawal);
+  
+  function updatePinDots() {
+    pinDots.forEach((dot, index) => {
+      if (index < pinInput.value.length) {
+        dot.classList.add('filled');
+      } else {
+        dot.classList.remove('filled');
+      }
+    });
+  }
+  
+  async function submitWithdrawal() {
+      if (pinInput.value.length < 4) {
+          alert('Please enter at least 4 digits');
+          return;
+      }
+      
+      const pin = pinInput.value;
+      const withdrawalData = JSON.parse(
+          document.getElementById('transaction-summary-modal').dataset.withdrawalData
+      );
+      
+      // Show loading state
+      const submitBtn = document.querySelector('.pin-key[data-action="submit"]');
+      const originalBtnHTML = submitBtn.innerHTML;
+      submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+      submitBtn.disabled = true;
+      
+      try {
+          console.log('Starting withdrawal process...', { withdrawalData });
+          
+          // 1. First verify PIN
+          console.log('Verifying PIN...');
+          const pinResponse = await fetch(`${API_BASE_URL}/verify-pin`, {
+              method: 'POST',
+              headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+              },
+              body: JSON.stringify({ pin })
+          });
+          
+          const pinResponseText = await pinResponse.text();
+          let pinResponseData;
+          try {
+              pinResponseData = JSON.parse(pinResponseText);
+          } catch {
+              pinResponseData = { message: pinResponseText };
+          }
+          
+          console.log('PIN verification response:', {
+              status: pinResponse.status,
+              data: pinResponseData
+          });
+
+          if (!pinResponse.ok) {
+              throw new Error(pinResponseData.message || 'PIN verification failed');
+          }
+
+          // 2. Submit withdrawal request
+          const authToken = localStorage.getItem('authToken');
+          if (!authToken) {
+              throw new Error('You need to be logged in to perform this action');
+          }
+
+          const withdrawalPayload = {
+              amount: withdrawalData.amount,
+              method: withdrawalData.method,
+              cryptoType: withdrawalData['crypto-type'],
+              walletAddress: withdrawalData['crypto-wallet'],
+              bankDetails: withdrawalData.method === 'bank' ? {
+                  bankName: withdrawalData['bank-name'],
+                  accountNumber: withdrawalData['account-number'],
+                  routingNumber: withdrawalData['routing-number']
+              } : null
+          };
+
+          console.log('Submitting withdrawal with payload:', withdrawalPayload);
+
+          const withdrawalResponse = await fetch(`${API_BASE_URL}/api/withdraw`, {
+              method: 'POST',
+              headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${authToken}`
+              },
+              body: JSON.stringify(withdrawalPayload)
+          });
+
+          const withdrawalResponseText = await withdrawalResponse.text();
+          let withdrawalResponseData;
+          try {
+              withdrawalResponseData = JSON.parse(withdrawalResponseText);
+          } catch {
+              withdrawalResponseData = { message: withdrawalResponseText };
+          }
+
+          console.log('Withdrawal response:', {
+              status: withdrawalResponse.status,
+              data: withdrawalResponseData
+          });
+
+          if (!withdrawalResponse.ok) {
+              // Handle specific "User not found" error
+              if (withdrawalResponse.status === 404 && withdrawalResponseData.error?.includes('User not found')) {
+                  localStorage.removeItem('authToken');
+                  throw new Error('Session expired. Please login again.');
+              }
+              throw new Error(
+                  withdrawalResponseData.message || 
+                  withdrawalResponseData.error || 
+                  `Withdrawal failed with status ${withdrawalResponse.status}`
+              );
+          }
+
+          // Show success
+          Swal.fire({
+              icon: 'success',
+              title: 'Success!',
+              text: 'Withdrawal request submitted successfully! It will be processed after admin approval.',
+              timer: 3000
+          });
+          
+          // Reset forms and close modals
+          document.getElementById('withdrawal-pin-modal').style.display = 'none';
+          document.getElementById('crypto-method').querySelector('form').reset();
+          document.getElementById('bank-method').querySelector('form').reset();
+          
+      } catch (error) {
+          console.error('Full withdrawal error:', {
+              error: error,
+              message: error.message,
+              stack: error.stack
+          });
+          
+          let errorMessage = error.message;
+          if (error.message.includes('Failed to fetch')) {
+              errorMessage = 'Network error. Please check your internet connection.';
+          } else if (error.message.includes('status 500')) {
+              errorMessage = 'Server error. Please try again later.';
+          } else if (error.message.includes('User not found') || error.message.includes('Session expired')) {
+              errorMessage = 'Session expired. Please login again.';
+              localStorage.removeItem('authToken');
+              setTimeout(() => window.location.href = '/login', 2000);
+          }
+
+          Swal.fire({
+              icon: 'error',
+              title: 'Withdrawal Failed',
+              text: errorMessage,
+              timer: 3000
+          });
+      } finally {
+          // Reset PIN input
+          pinInput.value = '';
+          updatePinDots();
+          submitBtn.innerHTML = originalBtnHTML;
+          submitBtn.disabled = false;
+      }
+  }
+  
 });
