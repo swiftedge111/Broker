@@ -743,153 +743,153 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
   
-  async function submitWithdrawal() {
-      if (pinInput.value.length < 4) {
-          alert('Please enter at least 4 digits');
-          return;
-      }
-      
-      const pin = pinInput.value;
-      const withdrawalData = JSON.parse(
-          document.getElementById('transaction-summary-modal').dataset.withdrawalData
-      );
-      
-      // Show loading state
-      const submitBtn = document.querySelector('.pin-key[data-action="submit"]');
-      const originalBtnHTML = submitBtn.innerHTML;
-      submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-      submitBtn.disabled = true;
-      
-      try {
-          console.log('Starting withdrawal process...', { withdrawalData });
-          
-          // 1. First verify PIN
-          console.log('Verifying PIN...');
-          const pinResponse = await fetch(`${API_BASE_URL}/verify-pin`, {
-              method: 'POST',
-              headers: {
-                  'Content-Type': 'application/json',
-                  'Authorization': `Bearer ${localStorage.getItem('authToken')}`
-              },
-              body: JSON.stringify({ pin })
-          });
-          
-          const pinResponseText = await pinResponse.text();
-          let pinResponseData;
-          try {
-              pinResponseData = JSON.parse(pinResponseText);
-          } catch {
-              pinResponseData = { message: pinResponseText };
-          }
-          
-          console.log('PIN verification response:', {
-              status: pinResponse.status,
-              data: pinResponseData
-          });
+    async function submitWithdrawal() {
+        if (pinInput.value.length < 4) {
+            alert('Please enter at least 4 digits');
+            return;
+        }
+        
+        const pin = pinInput.value;
+        const withdrawalData = JSON.parse(
+            document.getElementById('transaction-summary-modal').dataset.withdrawalData
+        );
+        
+        // Show loading state
+        const submitBtn = document.querySelector('.pin-key[data-action="submit"]');
+        const originalBtnHTML = submitBtn.innerHTML;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        submitBtn.disabled = true;
+        
+        try {
+            console.log('Starting withdrawal process...', { withdrawalData });
+            
+            // 1. First verify PIN
+            console.log('Verifying PIN...');
+            const pinResponse = await fetch(`${API_BASE_URL}/verify-pin`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                },
+                body: JSON.stringify({ pin })
+            });
+            
+            const pinResponseText = await pinResponse.text();
+            let pinResponseData;
+            try {
+                pinResponseData = JSON.parse(pinResponseText);
+            } catch {
+                pinResponseData = { message: pinResponseText };
+            }
+            
+            console.log('PIN verification response:', {
+                status: pinResponse.status,
+                data: pinResponseData
+            });
 
-          if (!pinResponse.ok) {
-              throw new Error(pinResponseData.message || 'PIN verification failed');
-          }
+            if (!pinResponse.ok) {
+                throw new Error(pinResponseData.message || 'PIN verification failed');
+            }
 
-          // 2. Submit withdrawal request
-          const authToken = localStorage.getItem('authToken');
-          if (!authToken) {
-              throw new Error('You need to be logged in to perform this action');
-          }
+            // 2. Submit withdrawal request
+            const authToken = localStorage.getItem('authToken');
+            if (!authToken) {
+                throw new Error('You need to be logged in to perform this action');
+            }
 
-          const withdrawalPayload = {
-              amount: withdrawalData.amount,
-              method: withdrawalData.method,
-              cryptoType: withdrawalData['crypto-type'],
-              walletAddress: withdrawalData['crypto-wallet'],
-              bankDetails: withdrawalData.method === 'bank' ? {
-                  bankName: withdrawalData['bank-name'],
-                  accountNumber: withdrawalData['account-number'],
-                  routingNumber: withdrawalData['routing-number']
-              } : null
-          };
+            const withdrawalPayload = {
+                amount: withdrawalData.amount,
+                method: withdrawalData.method,
+                cryptoType: withdrawalData['crypto-type'],
+                walletAddress: withdrawalData['crypto-wallet'],
+                bankDetails: withdrawalData.method === 'bank' ? {
+                    bankName: withdrawalData['bank-name'],
+                    accountNumber: withdrawalData['account-number'],
+                    routingNumber: withdrawalData['routing-number']
+                } : null
+            };
 
-          console.log('Submitting withdrawal with payload:', withdrawalPayload);
+            console.log('Submitting withdrawal with payload:', withdrawalPayload);
 
-          const withdrawalResponse = await fetch(`${API_BASE_URL}/api/withdraw`, {
-              method: 'POST',
-              headers: {
-                  'Content-Type': 'application/json',
-                  'Authorization': `Bearer ${authToken}`
-              },
-              body: JSON.stringify(withdrawalPayload)
-          });
+            const withdrawalResponse = await fetch(`${API_BASE_URL}/api/withdraw`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${authToken}`
+                },
+                body: JSON.stringify(withdrawalPayload)
+            });
 
-          const withdrawalResponseText = await withdrawalResponse.text();
-          let withdrawalResponseData;
-          try {
-              withdrawalResponseData = JSON.parse(withdrawalResponseText);
-          } catch {
-              withdrawalResponseData = { message: withdrawalResponseText };
-          }
+            const withdrawalResponseText = await withdrawalResponse.text();
+            let withdrawalResponseData;
+            try {
+                withdrawalResponseData = JSON.parse(withdrawalResponseText);
+            } catch {
+                withdrawalResponseData = { message: withdrawalResponseText };
+            }
 
-          console.log('Withdrawal response:', {
-              status: withdrawalResponse.status,
-              data: withdrawalResponseData
-          });
+            console.log('Withdrawal response:', {
+                status: withdrawalResponse.status,
+                data: withdrawalResponseData
+            });
 
-          if (!withdrawalResponse.ok) {
-              // Handle specific "User not found" error
-              if (withdrawalResponse.status === 404 && withdrawalResponseData.error?.includes('User not found')) {
-                  localStorage.removeItem('authToken');
-                  throw new Error('Session expired. Please login again.');
-              }
-              throw new Error(
-                  withdrawalResponseData.message || 
-                  withdrawalResponseData.error || 
-                  `Withdrawal failed with status ${withdrawalResponse.status}`
-              );
-          }
+            if (!withdrawalResponse.ok) {
+                // Handle specific "User not found" error
+                if (withdrawalResponse.status === 404 && withdrawalResponseData.error?.includes('User not found')) {
+                    localStorage.removeItem('authToken');
+                    throw new Error('Session expired. Please login again.');
+                }
+                throw new Error(
+                    withdrawalResponseData.message || 
+                    withdrawalResponseData.error || 
+                    `Withdrawal failed with status ${withdrawalResponse.status}`
+                );
+            }
 
-          // Show success
-          Swal.fire({
-              icon: 'success',
-              title: 'Success!',
-              text: 'Withdrawal request submitted successfully! It will be processed after admin approval.',
-              timer: 3000
-          });
-          
-          // Reset forms and close modals
-          document.getElementById('withdrawal-pin-modal').style.display = 'none';
-          document.getElementById('crypto-method').querySelector('form').reset();
-          document.getElementById('bank-method').querySelector('form').reset();
-          
-      } catch (error) {
-          console.error('Full withdrawal error:', {
-              error: error,
-              message: error.message,
-              stack: error.stack
-          });
-          
-          let errorMessage = error.message;
-          if (error.message.includes('Failed to fetch')) {
-              errorMessage = 'Network error. Please check your internet connection.';
-          } else if (error.message.includes('status 500')) {
-              errorMessage = 'Server error. Please try again later.';
-          } else if (error.message.includes('User not found') || error.message.includes('Session expired')) {
-              errorMessage = 'Session expired. Please login again.';
-              localStorage.removeItem('authToken');
-              setTimeout(() => window.location.href = '/login', 2000);
-          }
+            // Show success
+            Swal.fire({
+                icon: 'success',
+                title: 'Success!',
+                text: 'Withdrawal request submitted successfully! It will be processed after admin approval.',
+                timer: 3000
+            });
+            
+            // Reset forms and close modals
+            document.getElementById('withdrawal-pin-modal').style.display = 'none';
+            document.getElementById('crypto-method').querySelector('form').reset();
+            document.getElementById('bank-method').querySelector('form').reset();
+            
+        } catch (error) {
+            console.error('Full withdrawal error:', {
+                error: error,
+                message: error.message,
+                stack: error.stack
+            });
+            
+            let errorMessage = error.message;
+            if (error.message.includes('Failed to fetch')) {
+                errorMessage = 'Network error. Please check your internet connection.';
+            } else if (error.message.includes('status 500')) {
+                errorMessage = 'Server error. Please try again later.';
+            } else if (error.message.includes('User not found') || error.message.includes('Session expired')) {
+                errorMessage = 'Session expired. Please login again.';
+                localStorage.removeItem('authToken');
+                setTimeout(() => window.location.href = '/login', 2000);
+            }
 
-          Swal.fire({
-              icon: 'error',
-              title: 'Withdrawal Failed',
-              text: errorMessage,
-              timer: 3000
-          });
-      } finally {
-          // Reset PIN input
-          pinInput.value = '';
-          updatePinDots();
-          submitBtn.innerHTML = originalBtnHTML;
-          submitBtn.disabled = false;
-      }
-  }
+            Swal.fire({
+                icon: 'error',
+                title: 'Withdrawal Failed',
+                text: errorMessage,
+                timer: 3000
+            });
+        } finally {
+            // Reset PIN input
+            pinInput.value = '';
+            updatePinDots();
+            submitBtn.innerHTML = originalBtnHTML;
+            submitBtn.disabled = false;
+        }
+    }
   
 });
