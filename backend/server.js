@@ -68,6 +68,8 @@ const authenticateJWT = (req, res, next) => {
         next();
     });
 };
+
+
 //configuaring emiail transporter
 
 const transporter = nodemailer.createTransport({
@@ -463,11 +465,24 @@ app.post('/signup', async (req, res) => {
 
         // Check if the user already exists with the same email or username
         const existingUser = await User.findOne({ 
-            $or: [{ email: lowerEmail }, { username: lowerUsername }]
+            $or: [
+                { email: lowerEmail },
+                { username: lowerUsername }
+            ]
         });
 
         if (existingUser) {
-            return res.status(400).json({ message: 'User already exists' });
+            if (existingUser.email === lowerEmail) {
+                return res.status(400).json({ 
+                    message: 'Email already registered',
+                    resolution: 'Try logging in or use a different email'
+                });
+            } else {
+                return res.status(400).json({ 
+                    message: 'Username already taken',
+                    resolution: 'Please choose a different username'
+                });
+            }
         }
 
         // Hash password
@@ -476,7 +491,7 @@ app.post('/signup', async (req, res) => {
         // Generate a shortened UID
         const uid = uuidv4().slice(0, 8);
 
-        // Create new user with lowercase email and username, and shortened UID
+        // Create new user
         const user = new User({ 
             fullName, 
             email: lowerEmail, 
@@ -490,13 +505,19 @@ app.post('/signup', async (req, res) => {
         
         await user.save();
 
-        // Send welcome email (don't wait for it to complete)
+        // Send welcome email
         sendWelcomeEmail(user).catch(console.error);
 
-        res.status(201).json({ message: 'User created successfully' });
+        res.status(201).json({ 
+            message: 'Account created successfully',
+            nextSteps: 'Check your email for a welcome message'
+        });
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: 'Server error' });
+        console.error('Signup error:', error);
+        res.status(500).json({ 
+            message: 'Registration service temporarily unavailable',
+            resolution: 'Please try again in a few minutes'
+        });
     }
 });
 
@@ -523,31 +544,39 @@ async function sendWelcomeEmail(user) {
 app.post('/login', async (req, res) => {
   const { username, password } = req.body;
 
-  console.log("Received login request:", req.body);
-
   try {
-      // Convert username/email to lowercase for case-insensitive comparison
-      const user = await User.findOne({ 
-          $or: [{ username: username.toLowerCase() }, { email: username.toLowerCase() }] 
-      });
+      // Convert input to lowercase for case-insensitive comparison
+      const loginInput = username.toLowerCase();
       
-      console.log("User found in database:", user);
+      // Check if input is email format
+      const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(loginInput);
+      
+      // Find user by either username or email
+      const user = await User.findOne({
+          $or: [
+              { username: loginInput },
+              { email: isEmail ? loginInput : null } // Only check email if input looks like email
+          ]
+      });
 
       if (!user) {
-          console.log("User not found");
-          return res.status(400).json({ message: 'Invalid credentials' });
+          return res.status(400).json({ 
+              message: 'Account not found',
+              suggestion: 'Please check your login details or sign up for a new account'
+          });
       }
 
       // Verify password
       const isMatch = await bcrypt.compare(password, user.password);
       if (!isMatch) {
-          console.log("Password mismatch");
-          return res.status(400).json({ message: 'Invalid credentials' });
+          return res.status(400).json({ 
+              message: 'Incorrect password',
+              resolution: 'Please try again or reset your password'
+          });
       }
 
       user.status = 'Active';
-      user.lastLogin = new Date().toISOString();   
-      // Save the updated user data
+      user.lastLogin = new Date().toISOString();
       await user.save();
 
       // Create JWT token
@@ -555,12 +584,17 @@ app.post('/login', async (req, res) => {
 
       res.json({ 
           token, 
-          username: user.username,   
-          name: user.name || user.username  
+          username: user.username,
+          fullName: user.fullName,
+          email: user.email,
+          message: 'Login successful'
       });
   } catch (error) {
-      console.error("Error during login:", error);
-      res.status(500).json({ message: 'Server error' });
+      console.error("Login error:", error);
+      res.status(500).json({ 
+          message: 'Login service temporarily unavailable',
+          resolution: 'Please try again later'
+      });
   }
 });
 

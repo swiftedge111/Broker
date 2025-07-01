@@ -77,7 +77,7 @@ class AuthForms {
         const form = this.forms.login;
         const btn = form.querySelector('#loginBtn');
         const originalBtnText = btn.innerHTML;
-        const loginInput = form.querySelector('#loginEmail').value.trim().toLowerCase();
+        const loginInput = form.querySelector('#loginEmail').value.trim();
         const password = form.querySelector('#loginPassword').value;
         
         // Clear previous errors
@@ -85,7 +85,7 @@ class AuthForms {
         
         // Validate inputs
         if (!loginInput) {
-            this.showFieldError(form.querySelector('#loginEmail'), 'Please enter your email or username');
+            this.showFieldError(form.querySelector('#loginEmail'), 'Please enter your username or email');
             return;
         }
         
@@ -102,7 +102,7 @@ class AuthForms {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    [loginInput.includes('@') ? 'email' : 'username']: loginInput,
+                    username: loginInput, // Send as username (backend handles both cases)
                     password
                 })
             });
@@ -136,9 +136,11 @@ class AuthForms {
             if (error.name === 'AbortError') {
                 errorMessage = "Connection timeout";
                 resolution = "Please check your internet connection";
-            } else if (error.message.includes('credentials') || error.message.includes('Invalid')) {
+            } else if (error.message.includes('credentials') || 
+                    error.message.includes('Invalid') || 
+                    error.message.includes('not found')) {
                 errorMessage = "Incorrect login details";
-                resolution = "Check your email/username and password";
+                resolution = "Check your username/email and password";
             }
             
             this.showError({
