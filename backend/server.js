@@ -52,19 +52,35 @@ const authenticateJWT = (req, res, next) => {
     const token = req.headers['authorization']?.split(' ')[1];
     if (!token) {
         console.log('Authorization token missing');
-        return res.status(403).json({ message: 'No token provided' });
+        return res.status(401).json({  
+            success: false,
+            message: 'Authorization token required'
+        });
     }
 
     console.log('Received Token:', token);
 
-    jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
+    jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
         if (err) {
-            console.error('Token verification failed:', err);
-            return res.status(403).json({ message: 'Invalid token' });
+            console.error('Token verification failed:', {
+                error: err,
+                message: err.message,
+                expiredAt: err.expiredAt
+            });
+            return res.status(403).json({ 
+                success: false,
+                message: 'Invalid or expired token',
+                suggestion: 'Please login again'
+            });
         }
 
-        console.log('Decoded Token:', user); 
-        req.user = user;
+        console.log('Decoded Token:', decoded);     
+        req.user = {
+            id: decoded.id,       
+            iat: decoded.iat,
+            exp: decoded.exp
+        };
+        
         next();
     });
 };
@@ -1431,6 +1447,115 @@ app.post('/api/withdraw', authenticateJWT, async (req, res) => {
     }
 });
 
+// GET /api/admin/withdrawals/pending - Get pending withdrawals
+app.get('/api/admin/withdrawals/pending', authenticateJWT, authenticateAdmin, async (req, res) => {
+    try {
+        const pendingWithdrawals = await Transaction.find({
+            type: 'debit',
+            status: 'pending'
+        }).populate('userId', 'fullName uid email');
+
+        res.json({ 
+            success: true, 
+            withdrawals: pendingWithdrawals 
+        });
+
+    } catch (error) {
+        console.error('Error fetching pending withdrawals:', error);
+        res.status(500).json({ 
+            success: false,
+            error: 'Internal server error',
+            message: error.message
+        });
+    }
+});
+
+// POST /api/admin/withdrawals/:id/process - Process withdrawal
+app.post('/api/admin/withdrawals/:id/process', authenticateJWT, authenticateAdmin, async (req, res) => {
+    try {
+        const { action } = req.body; // 'approve' or 'reject'
+        const transactionId = req.params.id;
+
+        // Find the transaction
+        const transaction = await Transaction.findById(transactionId);
+        if (!transaction) {
+            return res.status(404).json({ 
+                success: false,
+                error: 'Transaction not found' 
+            });
+        }
+
+        // Verify it's a pending withdrawal
+        if (transaction.type !== 'debit' || transaction.status !== 'pending') {
+            return res.status(400).json({ 
+                success: false,
+                error: 'Not a pending withdrawal' 
+            });
+        }
+
+        // Find the user
+        const user = await User.findById(transaction.userId);
+        if (!user) {
+            return res.status(404).json({ 
+                success: false,
+                error: 'User not found' 
+            });
+        }
+
+        // Process based on action
+        if (action === 'approve') {
+            // Check if user has sufficient balance (again, in case it changed)
+            if (user.totalBalance < transaction.amount) {
+                return res.status(400).json({ 
+                    success: false,
+                    error: 'User has insufficient balance' 
+                });
+            }
+
+            // Deduct from user's balance
+            user.totalBalance -= transaction.amount;
+            await user.save();
+
+            // Update transaction
+            transaction.status = 'completed';
+            transaction.processedBy = req.user.id;
+            transaction.processedAt = new Date();
+            await transaction.save();
+
+            res.json({ 
+                success: true,
+                message: 'Withdrawal approved successfully',
+                newBalance: user.totalBalance
+            });
+
+        } else if (action === 'reject') {
+            // Update transaction
+            transaction.status = 'rejected';
+            transaction.processedBy = req.user.id;
+            transaction.processedAt = new Date();
+            await transaction.save();
+
+            res.json({ 
+                success: true,
+                message: 'Withdrawal rejected successfully'
+            });
+
+        } else {
+            return res.status(400).json({ 
+                success: false,
+                error: 'Invalid action' 
+            });
+        }
+
+    } catch (error) {
+        console.error('Error processing withdrawal:', error);
+        res.status(500).json({ 
+            success: false,
+            error: 'Internal server error',
+            message: error.message
+        });
+    }
+});
 
 // Health check route
 app.get('/health', (req, res) => {

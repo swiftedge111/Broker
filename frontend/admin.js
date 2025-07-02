@@ -476,5 +476,190 @@ document.getElementById('deletePinsBtn').addEventListener('click', async () => {
     }
 });
  
+//admin withdrawal Integration
 
+document.addEventListener('DOMContentLoaded', function() {
+    const pendingWithdrawalsTable = document.getElementById('pending-withdrawals');
+    const refreshBtn = document.querySelector('.btn-refresh');
+    const pendingCountSpan = document.querySelector('.pending-count');
+    const lastUpdatedSpan = document.querySelector('.last-updated');
+
+    // Get admin token (assuming it's stored differently from user token)
+    function getAdminToken() {
+        return localStorage.getItem('adminToken') || localStorage.getItem('authToken');
+    }
+
+    // Fetch and display pending withdrawals
+    async function loadPendingWithdrawals() {
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/admin/withdrawals/pending`, {
+                headers: {
+                    'Authorization': `Bearer ${getAdminToken()}`
+                }
+            });
+            
+            if (response.status === 401) {
+                // Handle unauthorized (redirect to login or show message)
+                showError('Session expired. Please log in again.');
+                return;
+            }
+            
+            if (response.status === 403) {
+                showError('Admin access required');
+                return;
+            }
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                updateWithdrawalsTable(data.withdrawals);
+                pendingCountSpan.textContent = data.withdrawals.length;
+                lastUpdatedSpan.textContent = `Last updated: ${new Date().toLocaleTimeString()}`;
+            } else {
+                showError('Failed to load withdrawals: ' + (data.error || 'Unknown error'));
+            }
+        } catch (error) {
+            showError('Network error: ' + error.message);
+        }
+    }
+
+    // Update the table with withdrawal data
+    function updateWithdrawalsTable(withdrawals) {
+        if (withdrawals.length === 0) {
+            pendingWithdrawalsTable.innerHTML = `
+                <tr class="empty-state">
+                    <td colspan="6">
+                        <div class="empty-content">
+                            <i class="fas fa-check-circle"></i>
+                            <p>No pending withdrawals at this time</p>
+                        </div>
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+
+        pendingWithdrawalsTable.innerHTML = withdrawals.map(withdrawal => `
+            <tr data-id="${withdrawal._id}">
+                <td class="col-date">${new Date(withdrawal.createdAt).toLocaleString()}</td>
+                <td class="col-uid">
+                    <div class="user-info">
+                        <span class="user-name">${withdrawal.userId?.fullName || 'Unknown'}</span>
+                        <span class="user-uid">${withdrawal.uid}</span>
+                    </div>
+                </td>
+                <td class="col-amount">$${withdrawal.amount.toFixed(2)}</td>
+                <td class="col-method">
+                    <span class="method-badge">${withdrawal.method}</span>
+                </td>
+                <td class="col-details">
+                    ${formatDetails(withdrawal.details)}
+                </td>
+                <td class="col-actions">
+                    <div class="action-buttons">
+                        <button class="btn-approve" data-id="${withdrawal._id}">Approve</button>
+                        <button class="btn-reject" data-id="${withdrawal._id}">Reject</button>
+                    </div>
+                </td>
+            </tr>
+        `).join('');
+
+        // Add event listeners to buttons
+        document.querySelectorAll('.btn-approve').forEach(btn => {
+            btn.addEventListener('click', () => processWithdrawal(btn.dataset.id, 'approve'));
+        });
+        
+        document.querySelectorAll('.btn-reject').forEach(btn => {
+            btn.addEventListener('click', () => processWithdrawal(btn.dataset.id, 'reject'));
+        });
+    }
+
+    // Format details based on withdrawal method
+    function formatDetails(details) {
+        if (details.bankName) {
+            return `
+                <div class="bank-details">
+                    <div><strong>${details.bankName}</strong></div>
+                    <div>Account: ${details.accountNumber}</div>
+                    ${details.routingNumber ? `<div>Routing: ${details.routingNumber}</div>` : ''}
+                </div>
+            `;
+        } else if (details.walletAddress) {
+            return `
+                <div class="crypto-details">
+                    <div><strong>${details.cryptoType}</strong></div>
+                    <div class="wallet-address">${details.walletAddress}</div>
+                </div>
+            `;
+        }
+        return 'N/A';
+    }
+
+    // Process withdrawal (approve/reject)
+    async function processWithdrawal(id, action) {
+        if (!confirm(`Are you sure you want to ${action} this withdrawal?`)) return;
+        
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/admin/withdrawals/${id}/process`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${getAdminToken()}`
+                },
+                body: JSON.stringify({ action })
+            });
+            
+            if (response.status === 401) {
+                showError('Session expired. Please log in again.');
+                return;
+            }
+            
+            if (response.status === 403) {
+                showError('Admin access required');
+                return;
+            }
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                showSuccess(`Withdrawal ${action}d successfully`);
+                loadPendingWithdrawals(); // Refresh the list
+            } else {
+                showError(`Failed to ${action} withdrawal: ${data.error || 'Unknown error'}`);
+            }
+        } catch (error) {
+            showError(`Network error: ${error.message}`);
+        }
+    }
+
+    // Helper functions for notifications
+    function showSuccess(message) {
+        // You can replace this with toast or other notification
+        const notification = document.createElement('div');
+        notification.className = 'notification success';
+        notification.innerHTML = `
+            <i class="fas fa-check-circle"></i>
+            <span>${message}</span>
+        `;
+        document.body.appendChild(notification);
+        setTimeout(() => notification.remove(), 3000);
+    }
+
+    function showError(message) {
+        const notification = document.createElement('div');
+        notification.className = 'notification error';
+        notification.innerHTML = `
+            <i class="fas fa-exclamation-circle"></i>
+            <span>${message}</span>
+        `;
+        document.body.appendChild(notification);
+        setTimeout(() => notification.remove(), 3000);
+    }
+
+    // Initial load
+    loadPendingWithdrawals();
+
+    // Refresh button
+    refreshBtn.addEventListener('click', loadPendingWithdrawals);
+});
  
