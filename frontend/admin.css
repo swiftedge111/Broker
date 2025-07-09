@@ -846,3 +846,116 @@ button:hover {
     gap: 0.5rem;
   }
 }
+
+/* Receipt Generator Section */
+#receipt-generator {
+  padding: 20px;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+}
+
+.receipt-generator-wrapper {
+  display: flex;
+  gap: 30px;
+}
+
+.receipt-form-column, 
+.receipt-preview-column {
+  flex: 1;
+}
+
+/* Professional Receipt Styling */
+.professional-receipt {
+  width: 100%;
+  max-width: 500px;
+  background: #fff;
+  padding: 30px;
+  border-radius: 8px;
+  border-top: 4px solid #3498db;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+  font-family: 'Segoe UI', system-ui, sans-serif;
+}
+
+.receipt-header {
+  text-align: center;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #eee;
+}
+
+.receipt-logo {
+  font-size: 24px;
+  font-weight: 700;
+  color: #2c3e50;
+  margin-bottom: 5px;
+}
+
+.receipt-title {
+  font-size: 18px;
+  color: #34495e;
+  margin: 10px 0;
+}
+
+.receipt-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  color: #7f8c8d;
+}
+
+.receipt-body {
+  margin: 20px 0;
+}
+
+.receipt-row {
+  display: flex;
+  justify-content: space-between;
+  margin: 12px 0;
+  padding-bottom: 8px;
+  border-bottom: 1px dashed #f0f0f0;
+}
+
+.receipt-label {
+  color: #7f8c8d;
+}
+
+.receipt-value {
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.receipt-amount {
+  font-family: 'Courier New', monospace;
+}
+
+.tracking-id {
+  background: #f8f9fa;
+  padding: 12px;
+  border-radius: 6px;
+  margin: 20px 0;
+  text-align: center;
+  font-family: monospace;
+  border: 1px dashed #ddd;
+}
+
+.receipt-footer {
+  margin-top: 30px;
+  font-size: 13px;
+  color: #7f8c8d;
+  text-align: center;
+  line-height: 1.6;
+}
+
+.receipt-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .receipt-generator-wrapper {
+    flex-direction: column;
+  }
+}

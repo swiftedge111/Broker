@@ -5,6 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Admin - Deposit Management</title>
   <link rel="stylesheet" href="admin.css">
+  <!-- Add this in the <head> section -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body>
 
@@ -24,6 +28,7 @@
         <li data-section="manage-holdings">Manage Holdings</li>
         <li data-section="pin-generation">Generate PIN</li>
         <li data-section="withdrawal-approvals">Withdrawal Approvals</li>
+        <li data-section="receipt-generator">Receipt Generator</li>
 
       </ul>
     </aside>
@@ -210,7 +215,7 @@
           </div>
         </div>
       </div>
-
+      <!-- Pin Generation -->
       <section id="pin-generation" class="content-section hidden">
         <h2>Generate PIN for Withdrawal</h2>
         <form id="pin-form">
@@ -266,12 +271,66 @@
         <p id="statusMessage"></p>
         
       </section>
+      <!-- Receipt Generator -->
+      <section id="receipt-generator" class="content-section">
+        <div class="receipt-generator-wrapper">
+          <!-- Form Column -->
+          <div class="receipt-form-column">
+            <h2 class="section-title">Generate Payment Receipt</h2>
+            <div class="form-container">
+              <div class="form-group">
+                <label>Client Name</label>
+                <input type="text" id="client-name" class="dashboard-input" required>
+              </div>
+              <div class="form-group">
+                <label>Amount ($)</label>
+                <input type="number" id="payment-amount" class="dashboard-input" required>
+              </div>
+              <div class="form-group">
+                <label>Description</label>
+                <input type="text" id="payment-description" class="dashboard-input" placeholder="e.g., Profit Share">
+              </div>
+              <div class="form-group">
+                <label>Payment Method</label>
+                <select id="payment-method" class="dashboard-select">
+                  <option>Bank Transfer</option>
+                  <option>Wire Transfer</option>
+                  <option>Check</option>
+                  <option>Crypto</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Tracking ID</label>
+                <input type="text" id="tracking-id" class="dashboard-input" placeholder="Transaction ID">
+              </div>
+              <button type="button" id="generate-btn" class="dashboard-btn primary">Generate Receipt</button>
+            </div>
+          </div>
       
-      
+          <!-- Receipt Preview Column -->
+          <div class="receipt-preview-column hidden" id="receipt-output">
+            <h2 class="section-title">Receipt Preview</h2>
+            <div class="receipt-preview-container">
+              <div class="professional-receipt" id="receipt-printable">
+                <!-- Receipt content will be generated here -->
+              </div>
+              <div class="receipt-actions">
+                <button id="save-png" class="dashboard-btn secondary">
+                  <i class="fas fa-download"></i> Save as PNG
+                </button>
+                <button id="save-pdf" class="dashboard-btn secondary">
+                  <i class="fas fa-file-pdf"></i> Save as PDF
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
 
     </main>
   </div>
   <script src="apiConfig.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <script src="admin.js"></script>
 </body>
 </html>

@@ -264,13 +264,28 @@ document.getElementById('add-holding-btn').addEventListener('click', async () =>
         parseFloat(document.getElementById('holding-value').value)
     ];
 
-    // Basic validation
-    if (!uid || !name || !symbol || isNaN(amount) || isNaN(value)) {
+    // Enhanced validation
+    if (!uid) {
+        Swal.fire('Error', 'Please search for a user first', 'error');
+        return;
+    }
+    if (!name || !symbol || isNaN(amount) || isNaN(value)) {
         Swal.fire('Error', 'Please fill all fields with valid values', 'error');
+        return;
+    }
+    if (value <= 0) {
+        Swal.fire('Error', 'Funding amount must be positive', 'error');
         return;
     }
 
     try {
+        // Show loading indicator
+        Swal.fire({
+            title: 'Processing...',
+            allowOutsideClick: false,
+            didOpen: () => Swal.showLoading()
+        });
+
         // Add new holding
         const response = await fetch(`${API_BASE_URL}/admin/add-holding`, {
             method: 'POST',
@@ -281,9 +296,10 @@ document.getElementById('add-holding-btn').addEventListener('click', async () =>
             body: JSON.stringify({ uid, name, symbol, amount, value })
         });
 
+        const result = await response.json();
+        
         if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.message || 'Failed to add holding');
+            throw new Error(result.message || 'Failed to add holding');
         }
 
         // Refresh display and clear form
@@ -293,55 +309,34 @@ document.getElementById('add-holding-btn').addEventListener('click', async () =>
         document.getElementById('holding-amount').value = '';
         document.getElementById('holding-value').value = '';
         
-        Swal.fire('Success', 'Holding added successfully', 'success');
+        // Enhanced success message
+        Swal.fire({
+            icon: 'success',
+            title: 'Funding Successful!',
+            html: `
+                <div style="text-align: left;">
+                    <p><strong>Asset Added:</strong> ${amount} ${symbol} (${name})</p>
+                    <p><strong>Amount Credited:</strong> $${value.toFixed(2)}</p>
+                    <p><strong>New Total Balance:</strong> $${result.totalBalance.toFixed(2)}</p>
+                    <p style="color: #28a745; margin-top: 10px;">
+                        <i class="fas fa-check-circle"></i> User has been notified
+                    </p>
+                </div>
+            `,
+            confirmButtonText: 'Done'
+        });
 
     } catch (error) {
         console.error("Error:", error);
-        Swal.fire('Error', error.message, 'error');
+        Swal.fire({
+            icon: 'error',
+            title: 'Funding Failed',
+            text: error.message,
+            footer: 'Please check the details and try again'
+        });
     }
 });
 
-// Update Balance Function (Simplified)
-
-// document.getElementById('update-balance-btn').addEventListener('click', async () => {
-//     const uid = document.getElementById('uid-search').value;
-//     const newBalance = parseFloat(document.getElementById('total-balance').value);
-
-//     if (!uid || isNaN(newBalance)) {
-//         Swal.fire('Error', 'Invalid user or balance value', 'error');
-//         return;
-//     }
-
-//     try {
-//         const response = await fetch(`${API_BASE_URL}/admin/user-balance/${uid}`, {
-//             method: 'PUT',
-//             headers: {
-//                 'Content-Type': 'application/json',
-//                 'Authorization': `Bearer ${localStorage.getItem('authToken')}`
-//             },
-//             body: JSON.stringify({ totalBalance: newBalance })
-//         });
-
-//         const result = await response.json();
-//         if (!response.ok) throw new Error(result.message || 'Failed to update balance');
-
-//         Swal.fire({
-//             icon: 'success',
-//             title: 'Balance Updated!',
-//             text: result.emailSent 
-//                 ? 'Balance updated and user notified' 
-//                 : 'Balance updated successfully',
-//             timer: 3000
-//         });
-
-//     } catch (error) {
-//         console.error("Error:", error);
-//         Swal.fire('Error', error.message, 'error');
-//     }
-// });
-
-
-//Js for custom interaction in pin generation
 
 document.addEventListener("DOMContentLoaded", () => {
     const pinTypeDropdown = document.getElementById("pin-type");
@@ -663,3 +658,114 @@ document.addEventListener('DOMContentLoaded', function() {
     refreshBtn.addEventListener('click', loadPendingWithdrawals);
 });
  
+// Receipt Generation js
+document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('generate-btn').addEventListener('click', function() {
+      const clientName = document.getElementById('client-name').value;
+      const amount = parseFloat(document.getElementById('payment-amount').value);
+      const description = document.getElementById('payment-description').value;
+      const method = document.getElementById('payment-method').value;
+      const trackingId = document.getElementById('tracking-id').value;
+      
+      // Generate receipt HTML
+      const receiptHTML = `
+        <div class="receipt-header">
+          <div class="receipt-logo">SWIFT EDGE TRADE</div>
+          <div class="receipt-title">PAYMENT RECEIPT</div>
+          <div class="receipt-meta">
+            <span>Receipt #: R${Math.floor(Math.random() * 1000)}</span>
+            <span>Date: ${new Date().toLocaleDateString('en-US', { 
+              year: 'numeric', 
+              month: 'short', 
+              day: 'numeric' 
+            })}</span>
+          </div>
+        </div>
+        
+        <div class="receipt-body">
+          <div class="receipt-row">
+            <span class="receipt-label">Paid to:</span>
+            <span class="receipt-value">${clientName}</span>
+          </div>
+          
+          <div class="receipt-row">
+            <span class="receipt-label">Description:</span>
+            <span class="receipt-value">${description}</span>
+          </div>
+          
+          <div class="receipt-row">
+            <span class="receipt-label">Amount:</span>
+            <span class="receipt-value receipt-amount">$${amount.toLocaleString('en-US', {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2
+            })}</span>
+          </div>
+          
+          <div class="receipt-row">
+            <span class="receipt-label">Method:</span>
+            <span class="receipt-value">${method}</span>
+          </div>
+          
+          <div class="tracking-id">
+            Tracking ID: <strong>${trackingId || 'N/A'}</strong>
+          </div>
+        </div>
+        
+        <div class="receipt-footer">
+          <p>Thank you for trading with us.</p>
+          <p>SWIFT EDGE TRADE LLC</p>
+          <p>Financial Street, New York, NY</p>
+          <p>Swiftedgetrade.com | (555) 123-4567</p>
+        </div>
+      `;
+      
+      // Insert into receipt container
+      document.getElementById('receipt-printable').innerHTML = receiptHTML;
+      
+      // Show receipt preview
+      document.getElementById('receipt-output').classList.remove('hidden');
+    });
+  
+    // Save as PNG
+    document.getElementById('save-png').addEventListener('click', function() {
+      html2canvas(document.getElementById('receipt-printable')).then(canvas => {
+        const link = document.createElement('a');
+        link.download = `swiftedge-payment-${new Date().getTime()}.png`;
+        link.href = canvas.toDataURL();
+        link.click();
+      });
+    });
+  
+    // Save as PDF
+    document.getElementById('save-pdf').addEventListener('click', async function() {
+        try {
+            // Use html2canvas with better rendering options
+            const canvas = await html2canvas(document.getElementById('receipt-printable'), {
+                scale: 2, // Higher quality
+                logging: false,
+                useCORS: true,
+                allowTaint: true
+            });
+            
+            // Initialize jsPDF
+            const pdf = new window.jspdf.jsPDF({
+                orientation: 'portrait',
+                unit: 'mm',
+                format: 'a5'
+            });
+            
+            // Calculate dimensions to fit A5
+            const imgWidth = pdf.internal.pageSize.getWidth();
+            const imgHeight = (canvas.height * imgWidth) / canvas.width;
+            
+            // Add image to PDF
+            pdf.addImage(canvas, 'PNG', 0, 0, imgWidth, imgHeight);
+            
+            // Save the PDF
+            pdf.save(`payment-receipt-${new Date().getTime()}.pdf`);
+        } catch (error) {
+            console.error('PDF generation error:', error);
+            alert('Failed to generate PDF. Please check console for details.');
+        }
+    });
+});

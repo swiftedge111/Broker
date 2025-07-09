@@ -685,6 +685,9 @@ app.post('/admin/add-holding', authenticateJWT, async (req, res) => {
         const user = await User.findOne({ uid });
         if (!user) return res.status(404).json({ message: 'User not found' });
 
+        // Store previous balance for notification
+        const previousBalance = user.totalBalance || 0;
+
         // Add the new holding
         user.holdings.push({ name, symbol, amount, value });
 
@@ -707,8 +710,22 @@ app.post('/admin/add-holding', authenticateJWT, async (req, res) => {
 
         // Recalculate totalBalance based on all holdings
         user.totalBalance = user.holdings.reduce((sum, h) => sum + h.value, 0);
-
         await user.save();
+
+        // Send notification if balance increased
+        if (user.totalBalance > previousBalance) {
+            try {
+                await sendFundingNotification(
+                    user.email,
+                    user.totalBalance - previousBalance,
+                    user.totalBalance
+                );
+                console.log(`Funding notification sent to ${user.email}`);
+            } catch (emailError) {
+                console.error('Failed to send funding notification:', emailError);
+                // Continue even if email fails
+            }
+        }
 
         res.json({ 
             message: 'Holding added successfully', 
@@ -720,58 +737,6 @@ app.post('/admin/add-holding', authenticateJWT, async (req, res) => {
         res.status(500).json({ message: 'Server error' });
     }
 });
-
-// Update user's total balance with email notification
-app.put('/admin/user-balance/:uid', authenticateJWT, async (req, res) => {
-    const { uid } = req.params;
-    const { totalBalance } = req.body;
-
-    try {
-        const user = await User.findOne({ uid });
-        if (!user) return res.status(404).json({ message: "User not found" });
-
-        const previousBalance = user.totalBalance;
-        const fundingAmount = totalBalance - previousBalance;
-
-        // Only create transaction and send notification if it's a positive funding
-        if (fundingAmount > 0) {
-            // Create a transaction
-            const transaction = new Transaction({
-                userId: user._id,
-                uid: user.uid,
-                type: 'credit',
-                amount: fundingAmount,
-                method: 'manual',
-                details: {
-                    note: 'Account funding',
-                },
-                status: 'completed'
-            });
-            await transaction.save();
-
-            // Send email notification
-            await sendFundingNotification(
-                user.email,
-                fundingAmount,
-                totalBalance
-            );
-        }
-
-        // Update user balance
-        user.totalBalance = totalBalance;
-        await user.save();
-
-        res.status(200).json({ 
-            message: "Total balance updated successfully", 
-            totalBalance,
-            emailSent: fundingAmount > 0
-        });
-    } catch (error) {
-        console.error("Error updating total balance:", error);
-        res.status(500).json({ message: "Server error" });
-    }
-});
-
 
 // Backend route to get user portfolio
 app.get('/portfolio', authenticateJWT, async (req, res) => {
@@ -1219,6 +1184,11 @@ app.delete('/admin/pins', authenticateJWT, async (req, res) => {
 // funding notification
 
 async function sendFundingNotification(email, amount, newBalance) {
+  if (!process.env.EMAIL_USER_WELCOME || !transporter) {
+    console.error('Email configuration is incomplete');
+    throw new Error('Email service not properly configured');
+  }
+
   const mailOptions = {
     from: `"SwiftEdge Trade" <${process.env.EMAIL_USER_WELCOME}>`,  
     to: email,
@@ -1246,11 +1216,11 @@ async function sendFundingNotification(email, amount, newBalance) {
   };
 
   try {
-    await transporter.sendMail(mailOptions);
-    console.log('Funding notification email sent to:', email);
+    const info = await transporter.sendMail(mailOptions);
+    console.log('Email sent:', info.messageId);
     return { success: true, message: 'Notification sent successfully' };
   } catch (error) {
-    console.error('Error sending funding notification email:', error);
+    console.error('Error sending email:', error);
     throw new Error('Failed to send funding notification');
   }
 }
@@ -1300,6 +1270,8 @@ app.get('/api/transactions', authenticateJWT, async (req, res) => {
         res.status(500).json({ message: 'Server error' });
     }
 });
+
+
 
 //Withdrawal Request Route and Admin Approval
 
@@ -1473,7 +1445,7 @@ app.get('/api/admin/withdrawals/pending', authenticateJWT, authenticateAdmin, as
 // POST /api/admin/withdrawals/:id/process - Process withdrawal
 app.post('/api/admin/withdrawals/:id/process', authenticateJWT, authenticateAdmin, async (req, res) => {
     try {
-        const { action } = req.body; // 'approve' or 'reject'
+        const { action } = req.body;  
         const transactionId = req.params.id;
 
         // Find the transaction
