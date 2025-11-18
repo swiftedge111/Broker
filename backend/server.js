@@ -8,7 +8,8 @@ require('dotenv').config();
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
 const crypto = require('crypto');
-const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
+const resend = new Resend(process.env.RESEND_API_KEY);
 const cron = require('node-cron');
 const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args)); 
 const app = express();
@@ -84,18 +85,6 @@ const authenticateJWT = (req, res, next) => {
         next();
     });
 };
-
-
-//configuaring emiail transporter
-
-const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: {
-    user: process.env.EMAIL_USER_WELCOME,
-    pass: process.env.EMAIL_PASS_WELCOME  
-  } 
-})
-
 
 // User Schema
 const UserSchema = new mongoose.Schema({
@@ -540,16 +529,14 @@ app.post('/signup', async (req, res) => {
 // Email sending function
 async function sendWelcomeEmail(user) {
     try {
-        const mailOptions = {
-            from: `"Swiftedge Trade" <${process.env.EMAIL_USER_WELCOME}>`,
+        await resend.emails.send({
+            from: 'SwiftEdge Trade <noreply@swiftedgetrade.com>',
             to: user.email,
             subject: 'Welcome to Our Platform!',
             text: getPlainTextWelcomeEmail(user),
             html: getWelcomeEmailTemplate(user)
-        };
-
-        await transporter.sendMail(mailOptions);
-        console.log(`Welcome email sent to ${user.email}`);
+        });
+        console.log(`Welcome email sent to ${user.email} via Resend`);
     } catch (error) {
         console.error('Error sending welcome email:', error);
     }
@@ -785,24 +772,14 @@ app.post('/request-reset', async (req, res) => {
       // Generate reset link with query parameter
       const resetLink = `https://www.swiftedgetrade.com/update-password.html?token=${resetToken}`;
 
-      // Send reset email
-      const transporter = nodemailer.createTransport({
-          service: 'Gmail',
-          auth: {
-              user: process.env.EMAIL_USER_WELCOME,
-              pass: process.env.EMAIL_PASS_WELCOME,
-          },
-      });
-
-      const mailOptions = {
-          from: '"Swiftedge Trade" <no-reply@swiftedge.com',
+      // Send reset email with Resend
+      await resend.emails.send({
+          from: 'SwiftEdge Trade <noreply@swiftedgetrade.com>',
           to: user.email,
           subject: 'Password Reset Request',
           text: `You requested a password reset. Click the link below to reset your password:\n\n${resetLink}`,
           html: `<p>You requested a password reset. Click the link below to reset your password:</p><a href="${resetLink}">${resetLink}</a>`,
-      };
-
-      await transporter.sendMail(mailOptions);
+      });
       res.status(200).json({ message: 'Password reset email sent successfully' });
   } catch (error) {
       console.error('Error in /request-reset:', error);
@@ -1181,50 +1158,57 @@ app.delete('/admin/pins', authenticateJWT, async (req, res) => {
   }
 });
 
-// funding notification
 
+// funding notification with Resend - UPDATED WITH BETTER LOGGING
 async function sendFundingNotification(email, amount, newBalance) {
-  if (!process.env.EMAIL_USER_WELCOME || !transporter) {
-    console.error('Email configuration is incomplete');
-    throw new Error('Email service not properly configured');
-  }
-
-  const mailOptions = {
-    from: `"SwiftEdge Trade" <${process.env.EMAIL_USER_WELCOME}>`,  
-    to: email,
-    subject: 'Your Trading Account Has Been Funded',
-    html: `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #007bff;">Account Funding Notification</h2>
-        <p>Hello,</p>
-        <p>Your trading account has been successfully funded.</p>
-        
-        <div style="background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin: 20px 0;">
-          <p><strong>Amount Credited:</strong> $${amount.toFixed(2)}</p>
-          <p><strong>New Account Balance:</strong> $${newBalance.toFixed(2)}</p>
-        </div>
-        
-        <p>If you have any questions or didn't initiate this funding, please contact our support team immediately.</p>
-        
-        <p>Best regards,<br>SwiftEdge Trade Team</p>
-        
-        <div style="margin-top: 30px; font-size: 12px; color: #6c757d;">
-          <p>This is an automated message. Please do not reply directly to this email.</p>
-        </div>
-      </div>
-    `
-  };
-
   try {
-    const info = await transporter.sendMail(mailOptions);
-    console.log('Email sent:', info.messageId);
-    return { success: true, message: 'Notification sent successfully' };
+    console.log('=== FUNDING EMAIL ATTEMPT ===');
+    console.log('To:', email);
+    console.log('Amount:', amount);
+    console.log('New Balance:', newBalance);
+    
+    const result = await resend.emails.send({
+      from: 'SwiftEdge Trade <noreply@swiftedgetrade.com>',
+      to: email,
+      subject: 'Your Trading Account Has Been Funded',
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #007bff;">Account Funding Notification</h2>
+          <p>Hello,</p>
+          <p>Your trading account has been successfully funded.</p>
+          
+          <div style="background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin: 20px 0;">
+            <p><strong>Amount Credited:</strong> $${amount.toFixed(2)}</p>
+            <p><strong>New Account Balance:</strong> $${newBalance.toFixed(2)}</p>
+          </div>
+          
+          <p>If you have any questions or didn't initiate this funding, please contact our support team immediately.</p>
+          
+          <p>Best regards,<br>SwiftEdge Trade Team</p>
+          
+          <div style="margin-top: 30px; font-size: 12px; color: #6c757d;">
+            <p>This is an automated message. Please do not reply directly to this email.</p>
+          </div>
+        </div>
+      `
+    });
+    
+    console.log('✅ FUNDING: Email sent successfully to', email);
+    console.log('Resend ID:', result.id);
+    console.log('=== FUNDING EMAIL COMPLETE ===');
+    
+    return { success: true, message: 'Notification sent successfully', resendId: result.id };
+    
   } catch (error) {
-    console.error('Error sending email:', error);
-    throw new Error('Failed to send funding notification');
+    console.error('❌ FUNDING: Email failed for', email);
+    console.error('Error:', error.message);
+    console.error('Full error:', error);
+    console.log('=== FUNDING EMAIL FAILED ===');
+    
+    // Don't throw error to avoid blocking the main process
+    return { success: false, message: 'Failed to send funding notification', error: error.message };
   }
 }
-
 
 // Backend Logic for withdrawals and Transactions history
 
@@ -1525,6 +1509,59 @@ app.post('/api/admin/withdrawals/:id/process', authenticateJWT, authenticateAdmi
             success: false,
             error: 'Internal server error',
             message: error.message
+        });
+    }
+});
+
+// Debug email route - Add this to your server
+app.post('/debug-email', async (req, res) => {
+    const { email } = req.body;
+    
+    try {
+        console.log('=== DEBUG EMAIL START ===');
+        console.log('Testing email to:', email);
+        console.log('Resend API Key exists:', !!process.env.RESEND_API_KEY);
+        console.log('Domain: swiftedgetrade.com');
+        
+        const result = await resend.emails.send({
+            from: 'SwiftEdge Trade <noreply@swiftedgetrade.com>',
+            to: email,
+            subject: 'DEBUG: Test Email from SwiftEdge',
+            html: `
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                    <h2 style="color: #007bff;">DEBUG Test Email</h2>
+                    <p>This is a test email to verify email functionality.</p>
+                    <p><strong>Time:</strong> ${new Date().toISOString()}</p>
+                    <p><strong>To:</strong> ${email}</p>
+                    <p><strong>From:</strong> no-reply@swiftedgetrade.com</p>
+                </div>
+            `
+        });
+        
+        console.log('✅ DEBUG: Email sent successfully');
+        console.log('Resend Response:', result);
+        console.log('=== DEBUG EMAIL END ===');
+        
+        res.json({ 
+            success: true, 
+            message: 'Debug email sent successfully',
+            result 
+        });
+        
+    } catch (error) {
+        console.error('❌ DEBUG: Email failed');
+        console.error('Error details:', {
+            message: error.message,
+            name: error.name,
+            code: error.code,
+            stack: error.stack
+        });
+        console.log('=== DEBUG EMAIL END ===');
+        
+        res.status(500).json({ 
+            success: false, 
+            error: error.message,
+            details: error 
         });
     }
 });
