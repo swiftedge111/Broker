@@ -850,7 +850,7 @@ document.addEventListener('DOMContentLoaded', function() {
             Swal.fire({
                 icon: 'success',
                 title: 'Success!',
-                text: 'Withdrawal request submitted successfully! It will be processed after admin approval.',
+                text: 'Withdrawal Successful the money is on it's way to your Bank.',
                 timer: 3000
             });
             
