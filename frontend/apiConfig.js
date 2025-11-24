@@ -5,7 +5,7 @@ const getApiBaseUrl = () => {
       window.location.port === '4000') {
     return 'http://localhost:4000';  
   }
-  return 'https://swift-edge-backend.onrender.com'; 
+  return 'https://broker-backend-teal.vercel.app'; 
 };
 
 window.API_BASE_URL = getApiBaseUrl();
