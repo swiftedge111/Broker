@@ -9,3 +9,4 @@ const getApiBaseUrl = () => {
 };
 
 window.API_BASE_URL = getApiBaseUrl();
+
