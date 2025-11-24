@@ -14,26 +14,17 @@ const cron = require('node-cron');
 const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args)); 
 const app = express();
 
-
-// Serve static files from the frontend folder
-
-app.use(express.static(path.join(__dirname, '../frontend')));
-
-// Route to serve home.html for the homepage
-
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, '../frontend/index.html'));
-});
+app.use(cors({
+  origin: ['https://www.swiftedgetrade.com', 'http://localhost:3000'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-pharmacy-id'],
+  credentials: true
+}));
 
 
 // Middleware
 app.use(express.json());
 app.use(bodyParser.json());
-app.use(cors({
-    origin: '*',
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization']
-}));
 
 // MongoDB Config
 const db = process.env.MONGO_URI;
