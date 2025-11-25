@@ -5,7 +5,7 @@ const getApiBaseUrl = () => {
       window.location.port === '4000') {
     return 'http://localhost:4000';  
   }
-  return 'https://broker-backend-teal.vercel.app'; 
+  return 'https://broker-humq.onrender.com'; 
 };
 
 window.API_BASE_URL = getApiBaseUrl();
