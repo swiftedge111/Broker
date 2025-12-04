@@ -15,7 +15,7 @@ const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch
 const app = express();
 
 app.use(cors({
-  origin: ['https://www.swiftedgetrade.com', 'http://localhost:3000'],
+  origin: ['https://www.swiftedgetrade.com', 'http://localhost:3000', 'https://sterling-edge-trade.vercel.app'],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'x-pharmacy-id'],
   credentials: true
